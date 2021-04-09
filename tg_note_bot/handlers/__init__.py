@@ -2,7 +2,7 @@
 Contains handlers.
 """
 
-# from .errors import dp
+from .errors import dp
 from .users import dp
 
 

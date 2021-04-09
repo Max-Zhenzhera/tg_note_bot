@@ -2,14 +2,18 @@
 Contains basis user handlers.
 """
 
+import logging
+
 from aiogram import types
 from aiogram.dispatcher.filters import (
     CommandHelp,
     CommandStart
 )
 
+from ...keyboards.reply import LinksAndRubricsMainKeyboard
+# dp loading ^^^^^^^^^^^
 from ...loader import dp
-import logging
+# ^^^^^^^^^^^^^^^^^^^^^^
 
 
 logger = logging.getLogger(__name__)
@@ -22,18 +26,19 @@ async def command_start(message: types.Message):
                f"Hello, {message.from_user.username}! "
                "I`m your small links saver bot:) Explore more with the /help command!"
     )
+    keyboard = LinksAndRubricsMainKeyboard(one_time_keyboard=True)
 
-    await message.answer(text)
+    # ------------------------------------------------------
+    # add user in db
+    # ------------------------------------------------------
+
+    await message.answer(text, reply_markup=keyboard)
 
 
 @dp.message_handler(CommandHelp())
 async def command_help(message: types.Message):
     """ Answer on help command """
-    text = (
-        "List of the commands:",
-        "\t/{command:<10} - to commence working with me;".format(command='start'),
-        "\t/{command:<10} - to commence working with me;".format(command='help')
-    )
+    text = 'Not implemented'
 
     await message.answer("\n".join(text))
 
