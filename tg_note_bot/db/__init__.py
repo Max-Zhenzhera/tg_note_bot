@@ -1,0 +1,3 @@
+"""
+Implements db communication.
+"""
