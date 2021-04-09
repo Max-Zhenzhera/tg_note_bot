@@ -9,6 +9,7 @@ aiogram = "*"
 python-dotenv = "*"
 aiosqlite = "*"
 pyyaml = "*"
+pydantic = "*"
 
 [dev-packages]
 

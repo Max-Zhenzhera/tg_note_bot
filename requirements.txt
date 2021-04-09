@@ -5,3 +5,4 @@ pipenv==2020.11.15
 python-dotenv==0.17.0
 PyYAML==5.4.1
 SQLAlchemy==1.4.6
+pydantic==1.8.1
