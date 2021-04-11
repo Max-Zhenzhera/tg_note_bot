@@ -5,7 +5,7 @@ Contains all objects that might be imported from child packages (handlers, ...).
 .. data:: bot
 .. data:: bot
 .. data:: storage
-.. data:: async_db_session
+.. data:: async_db_sessionmaker
 """
 
 from aiogram import (
@@ -21,7 +21,7 @@ from .settings import LOGGING_CONFIG_PATH
 from .utils.logging_ import setup_logging
 
 
-__all__ = ['dp', 'async_db_session']
+__all__ = ['dp', 'async_db_sessionmaker']
 
 
 # logging setting - - - - - - - - - - - - -
@@ -36,5 +36,5 @@ storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 
 # # db
-async_db_session = sqlite.create_db_session()
+async_db_sessionmaker = sqlite.create_db_session()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

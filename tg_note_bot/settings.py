@@ -51,4 +51,6 @@ DB_PATH = BASE_DIR / f'{DB_NAME}.db'
 # BOT VARS //////////////////////////////////////////////////////////////////////////////////////////////////
 ADMINS: list[int] = [int(admin_id) for admin_id in os.getenv('ADMINS').split(',')]
 THROTTLING_RATE_LIMIT_IN_SECONDS: float = .2
+
+EMPTY_VALUE = 'Pass'
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

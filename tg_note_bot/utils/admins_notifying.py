@@ -29,7 +29,7 @@ async def notify_admins_on_startup(dp: Dispatcher) -> None:
         try:
             await dp.bot.send_message(admin, message)
 
-            logger.debug(f'Admin with id <{admin}> has been notified')
+            logger.debug(f'Admin with id <{admin}> has been notified about startup')
         except Exception as error:
             logger.exception(msg=str(error), exc_info=error)
         else:
