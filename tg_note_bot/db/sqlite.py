@@ -1,5 +1,10 @@
 """
 Contains functions for setting up db.
+
+.. func:: create_db_session() -> sessionmaker
+    Create async db session maker
+.. func:: create_db_engine() -> AsyncEngine
+    Create async db engine. Might me used for initializing
 """
 
 from sqlalchemy.ext.asyncio import (

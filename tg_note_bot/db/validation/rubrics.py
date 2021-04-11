@@ -5,7 +5,7 @@ Contains validators for rubrics.
     Rubric name validator
 .. class:: RubricDescription(BaseModel)
     Rubric description validator
-.. class:: Rubric
+.. class:: RubricValidator
     Rubric validators joiner
 """
 

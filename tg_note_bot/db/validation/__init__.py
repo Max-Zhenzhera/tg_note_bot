@@ -1,5 +1,11 @@
 """
 Contains validators.
+
+.. exception:: ValidationError
+    Synonym of the `pydantic.ValidationError`
+
+.. func:: get_formatted_error_message(validation_error: pydantic.ValidationError,
+        error_message_prefix: Optional[bool] = True) -> str
 """
 
 from typing import (
@@ -8,6 +14,7 @@ from typing import (
 
 import pydantic
 
+from .links import LinkValidator
 from .rubrics import RubricValidator
 
 
