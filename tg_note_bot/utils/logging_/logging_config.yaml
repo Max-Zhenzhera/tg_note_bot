@@ -10,6 +10,9 @@ formatters:
     standard:
         format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+    detailed:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(funcName)s() [%(lineno)s] : %(message)s"
+
     error:
         format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s() [%(lineno)s] : %(message)s"
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -17,14 +20,21 @@ formatters:
 
 # filters
 filters:
+    # catches logs !only! with INFO level
     INFOFilter:
         # path to filter from the core package
         (): tg_note_bot.utils.logging_.filters.LevelFilter
         level: INFO
 
+    # catches logs !only! with DEBUG level
+    DEBUGFilter:
+        # path to filter from the core package
+        (): tg_note_bot.utils.logging_.filters.LevelFilter
+        level: DEBUG
 
 # handlers
 handlers:
+    # only INFO logs
     info_console:
         class: logging.StreamHandler
         level: INFO
@@ -32,12 +42,33 @@ handlers:
         stream: ext://sys.stdout
         filters: [INFOFilter]
 
+    # only DEBUG logs
+    debug_console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: detailed
+        stream: ext://sys.stdout
+        filters: [DEBUGFilter]
+
+    # WARN and higher logs
     error_console:
         class: logging.StreamHandler
         level: WARN
         formatter: error
         stream: ext://sys.stderr
 
+    # INFO and higher logs
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: detailed
+        # path to filter from the core package
+        filename: ../logs/common/info.log
+        maxBytes: 1000000 # 1MB
+        backupCount: 3
+        encoding: utf8
+
+    # ERROR and higher logs
     error_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: ERROR
@@ -48,6 +79,7 @@ handlers:
         backupCount: 5
         encoding: utf8
 
+    # ERROR and higher logs that have been emitted !only! by `tg_note_bot_logger`
     tg_note_bot_logger_error_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: ERROR
@@ -62,8 +94,8 @@ handlers:
 
 # root logger
 root:
-    level: NOTSET
-    handlers: [info_console, error_console, error_file_handler]
+    level: INFO
+    handlers: [debug_console, info_console, error_console, info_file_handler, error_file_handler]
     propogate: yes
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
