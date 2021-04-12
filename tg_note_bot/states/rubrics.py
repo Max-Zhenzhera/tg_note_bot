@@ -25,5 +25,5 @@ class RubricDeletingStatesGroup(StatesGroup):
     # * move rubric links in another rubric
     handling_of_decision_about_rubric_links = State()
 
-    # if user has chosen to move rubrics in another rubric
+    # if user has chosen to move rubric links in another rubric
     handling_of_new_rubric_to_move_links_into = State()
