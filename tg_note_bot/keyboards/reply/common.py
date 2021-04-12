@@ -31,11 +31,13 @@ class LinksAndRubricsMainReplyKeyboard(types.ReplyKeyboardMarkup):
 
     # links section
     text_for_button_to_see_links = 'See all links'
+    text_for_button_to_dump_link = 'Dump link'
     text_for_button_to_see_links_by_rubric = 'See links by rubric'
     text_for_button_to_add_link = 'Add a new link'
     text_for_button_to_delete_link = 'Delete the link'
 
     button_to_see_links = types.KeyboardButton(text_for_button_to_see_links)
+    button_to_dump_link = types.KeyboardButton(text_for_button_to_dump_link)
     button_to_see_links_by_rubric = types.KeyboardButton(text_for_button_to_see_links_by_rubric)
     button_to_add_link = types.KeyboardButton(text_for_button_to_add_link)
     button_to_delete_link = types.KeyboardButton(text_for_button_to_delete_link)
@@ -54,7 +56,7 @@ class LinksAndRubricsMainReplyKeyboard(types.ReplyKeyboardMarkup):
     # constructing buttons in the rows section
     keyboard_structure = [
         [button_to_see_links, button_to_see_rubrics],
-        [button_to_see_links_by_rubric],
+        [button_to_dump_link, button_to_see_links_by_rubric],
         [button_to_add_link, button_to_add_rubric],
         [button_to_delete_link, button_to_delete_rubric]
     ]
