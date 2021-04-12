@@ -16,11 +16,16 @@ from .db import (
     # fetching
     fetch_all_rubrics,
     fetch_one_rubric,
+    fetch_all_links,
+    fetch_one_link,
     fetch_all_links_without_rubric,
+    fetch_all_links_with_rubric_grouping,
     # updating
     migrate_links_in_another_rubric,
     # aggregate
-    does_rubric_have_any_links
+    count_user_rubrics,
+    does_rubric_have_any_links,
+    does_rubric_have_unique_name
 )
 
 from .errors import (
