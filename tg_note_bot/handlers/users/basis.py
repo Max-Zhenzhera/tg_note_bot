@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 @dp.message_handler(CommandStart())
 async def command_start(message: types.Message):
     """ Answer on start command and add user to db """
-    user_tg_id = message.from_user.id
+    user_data = message.from_user
+    user_tg_id = user_data.id
     user = User(id=user_tg_id)
 
     try:
@@ -46,10 +47,12 @@ async def command_start(message: types.Message):
         text = f'Hello, friend! Do you wanna add something new ? '
     else:
         logger.debug(f'User with <id={user_tg_id}> has been added in the database.')
+        logger.info(f'New user: {user_data.id} | {user_data.username} | {user_data.full_name}')
 
         text = md.text(
             f'Hello, {md.hbold(message.from_user.username)}! ',
-            f'I`m your small {md.hitalic("links saver helper")}:) Explore more with the | /help | command!'
+            f'I`m your small {md.hitalic("links saver helper")}:) Explore more with the | /help | command! '
+            f'NOTE (BOT`S NOW IN DEVELOPMENT - HE DOESN`T WORK NOW!)'
         )
 
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)

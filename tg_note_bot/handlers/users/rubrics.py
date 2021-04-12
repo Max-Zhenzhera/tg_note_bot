@@ -71,16 +71,14 @@ async def see_rubrics(message: types.Message) -> None:
         rubrics = await db.fetch_all_rubrics(session, user_id)
 
     if rubrics:
-        rubrics_data: list[str] = []
-
-        for rubric in rubrics:
-            rubric_name = md.hbold(rubric.name)
-            rubric_description = f'[{rubric.description}]' if rubric.description else ''
-            rubric_data = md.text('\t *', rubric_name, rubric_description)
-
-            rubrics_data.append(rubric_data)
-
-        text = md.text('It`s a list of your rubrics:', *rubrics_data, sep='\n')
+        text = md.text(
+            'It`s a list of your rubrics:',
+            *[
+                '{list_divider} {tg_repr}'.format(list_divider='\t * ', tg_repr=rubric.full_tg_repr)
+                for rubric in rubrics
+            ],
+            sep='\n'
+        )
     else:
         text = 'List of the rubrics is empty!'
 
@@ -122,7 +120,7 @@ async def add_rubric__finish(message: types.Message, state: FSMContext, rubric_d
 @dp.message_handler(text=LinksAndRubricsMainReplyKeyboard.text_for_button_to_add_rubric)
 async def add_rubric__catch_message(message: types.Message) -> None:
     """ Trigger on rubric adding message. Ask to input rubric name """
-    text = 'Input rubric name [required].'
+    text = 'Input rubric name [required and unique].'
     keyboard = types.ReplyKeyboardRemove()
     await message.answer(text, reply_markup=keyboard)
 
@@ -138,29 +136,36 @@ async def add_rubric__handle_rubric_name(message: types.Message, state: FSMConte
         rubric_name = RubricValidator().validate_rubric_name(rubric_name)
     except ValidationError as error:
         await message.answer(get_formatted_error_message(error))
-
-        return
     else:
-        await message.answer('Rubric name has been accepted.')
+        user_id = message.from_user.id
 
-        async with state.proxy() as data:
-            data['name'] = rubric_name
+        async with async_db_sessionmaker() as session:
+            rubric_name_is_unique = await db.does_rubric_have_unique_name(session, user_id, rubric_name)
 
-        text = 'Input rubric description [optional].'
-        keyboard = EmptyValueReplyKeyboard(one_time_keyboard=True, resize_keyboard=True)
-        await message.answer(text, reply_markup=keyboard)
+        if rubric_name_is_unique:
+            async with state.proxy() as data:
+                data['name'] = rubric_name
+            await message.answer('Rubric name has been accepted.')
 
-        await RubricAddingStatesGroup.next()
+            text = 'Input rubric description [optional].'
+            keyboard = EmptyValueReplyKeyboard(one_time_keyboard=True, resize_keyboard=True)
+            await message.answer(text, reply_markup=keyboard)
+
+            await RubricAddingStatesGroup.next()
+        else:
+            text = (
+                f'Oops... Sorry, but {md.hbold("you`ve entered non-unique rubric name")}! '
+                f'Please, try to create rubric again and be aware with unique name!'
+            )
+            await message.answer(text)
 
 
 @dp.message_handler(text=EMPTY_VALUE, state=RubricAddingStatesGroup.handling_of_rubric_description)
 async def add_rubric__handle_empty_rubric_description(message: types.Message, state: FSMContext) -> None:
     """ Handle empty rubric description. Last state -> add rubric to db. """
-    text = 'Empty value has been accepted as rubric description.'
-    await message.answer(text)
-
     async with state.proxy() as data:
         data['description'] = None
+    await message.answer('Empty value has been accepted as rubric description.')
 
     await add_rubric__finish(message, state, data)
 
@@ -175,13 +180,10 @@ async def add_rubric__handle_rubric_description(message: types.Message, state: F
     except ValidationError as error:
         keyboard = EmptyValueReplyKeyboard(one_time_keyboard=True, resize_keyboard=True)
         await message.answer(get_formatted_error_message(error), reply_markup=keyboard)
-
-        return
     else:
-        await message.answer('Rubric description has been accepted.')
-
         async with state.proxy() as data:
             data['description'] = rubric_description
+        await message.answer('Rubric description has been accepted.')
 
         await add_rubric__finish(message, state, data)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -197,13 +199,15 @@ async def delete_rubric__catch_message(message: types.Message) -> None:
         rubrics = await db.fetch_all_rubrics(session, user_id)
 
     if rubrics:
+        text = 'Please, choose one from the list below:'
         keyboard = RubricListInlineKeyboard(rubrics, action=RUBRIC_CB_ACTION_FOR_RUBRIC_DELETING, row_width=1)
-        await message.answer('Please, choose one from the list below:', reply_markup=keyboard)
 
         await RubricDeletingStatesGroup.handling_of_rubric_data.set()
     else:
+        text = 'You don`t have any rubrics!'
         keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
-        await message.answer('You don`t have any rubrics!', reply_markup=keyboard)
+
+    await message.answer(text, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(
@@ -212,6 +216,8 @@ async def delete_rubric__catch_message(message: types.Message) -> None:
 )
 async def delete_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict, state: FSMContext) -> None:
     """ Handle rubric data. Ask to make a decision about rubric links """
+    user_id = call.from_user.id
+
     rubric_id = callback_data['id']
     rubric_name = callback_data['name']
 
@@ -224,7 +230,16 @@ async def delete_rubric__handle_rubric_data(call: types.CallbackQuery, callback_
             data['name'] = rubric_name
 
         text = 'What do you prefer to do with the links that related with the current rubric?'
-        keyboard = DecisionAboutRubricLinksOnDeletingReplyKeyboard(one_time_keyboard=True)
+
+        async with async_db_sessionmaker() as session:
+            user_rubrics_quantity = await db.count_user_rubrics(session, user_id)
+
+        if user_rubrics_quantity == 1:
+            keyboard = DecisionAboutRubricLinksOnDeletingReplyKeyboard(
+                does_user_have_other_rubrics=False, one_time_keyboard=True, resize_keyboard=True
+            )
+        else:
+            keyboard = DecisionAboutRubricLinksOnDeletingReplyKeyboard(one_time_keyboard=True, resize_keyboard=True)
 
         await RubricDeletingStatesGroup.next()
     else:
