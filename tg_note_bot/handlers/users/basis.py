@@ -28,6 +28,7 @@ from ...loader import (
     async_db_sessionmaker
 )
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,22 +38,25 @@ async def command_start(message: types.Message):
     user_data = message.from_user
     user_tg_id = user_data.id
     user = User(id=user_tg_id)
-
     try:
         async with async_db_sessionmaker() as session:
             await db.add_user(session, user)
     except UserAlreadyInDbError:
         logger.debug(f'User with <id={user_tg_id}> has already been in the database.')
 
-        text = f'Hello, friend! Do you wanna add something new ? '
+        text = f'👋 Hello, friend! Do you wanna add something new ? '
     else:
         logger.debug(f'User with <id={user_tg_id}> has been added in the database.')
-        logger.info(f'New user: {user_data.id} | {user_data.username} | {user_data.full_name}')
+        logger.info(
+            f'New user: {user_data.id} | {user_data.username} | {user_data.full_name} ({message.date.isoformat(" ")})'
+        )
 
         text = md.text(
-            f'Hello, {md.hbold(message.from_user.username)}! ',
-            f'I`m your small {md.hitalic("links saver helper")}:) Explore more with the | /help | command! '
-            f'NOTE (BOT`S NOW IN DEVELOPMENT - HE DOESN`T WORK NOW!)'
+            f'🤘 Hello, {md.hbold(message.from_user.username)}! ',
+            f'I`m your small {md.hitalic("links saver helper")} 🔗 '
+            'Explore more with the | /help | command!',
+            md.hunderline('NOTE (BOT`S NOW IN DEVELOPMENT - 🛠 - HE DOESN`T WORK NOW!)'),
+            sep='\n'
         )
 
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
@@ -72,4 +76,4 @@ async def command_cancel(message: types.Message, state: FSMContext):
     await state.finish()
 
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
-    await message.answer('The current action has canceled!', reply_markup=keyboard)
+    await message.answer('❌ The current action has canceled!', reply_markup=keyboard)

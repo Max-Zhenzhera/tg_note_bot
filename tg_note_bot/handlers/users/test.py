@@ -1,5 +1,7 @@
 """
 Contains test handlers.
+
+.. async:: test_command(message: types.Message) -> None
 """
 
 from aiogram import types
@@ -9,7 +11,10 @@ from ...loader import dp
 
 
 @dp.message_handler(commands=['test'])
-async def test_command(message: types.Message):
+async def test_command(message: types.Message) -> None:
     """ Answer on help command """
-    a = 'https://www.youtube.com/watch?v=K70nC0FbxiU&list=RDMM9fUyul2Hg18&index=27'
-    await message.answer(a, disable_web_page_preview=True)
+    a = md.hbold('✅')
+    b = types.InlineKeyboardMarkup()
+    b.add(types.InlineKeyboardButton(a, callback_data='123'))
+    await message.answer('test', reply_markup=b)
+

@@ -9,20 +9,14 @@ from aiogram.dispatcher import FSMContext
 from aiogram.utils import markdown as md
 
 from ... import db
-from ...loader import (
-    dp,
-    async_db_sessionmaker
+from ...db.models import (
+    Link,
+    Rubric
 )
-from ...states import LinkAddingStatesGroup
 from ...db.validation import (
     ValidationError,
     LinkValidator,
     get_formatted_error_message
-)
-from ...db.models import Link
-from ...keyboards.reply import (
-    EmptyValueReplyKeyboard,
-    LinksAndRubricsMainReplyKeyboard
 )
 from ...keyboards.inline import (
     LINK_CB,
@@ -30,8 +24,16 @@ from ...keyboards.inline import (
     RUBRIC_CB,
     RubricListInlineKeyboard
 )
+from ...keyboards.reply import (
+    EmptyValueReplyKeyboard,
+    LinksAndRubricsMainReplyKeyboard
+)
+from ...loader import (
+    dp,
+    async_db_sessionmaker
+)
 from ...settings import EMPTY_VALUE
-
+from ...states import LinkAddingStatesGroup
 
 logger = logging.getLogger(__name__)
 
@@ -51,21 +53,19 @@ async def see_links(message: types.Message) -> None:
     user_id = message.from_user.id
 
     async with async_db_sessionmaker() as session:
-        rubrics_with_loaded_links, links_without_rubric = await db.fetch_all_links_with_rubric_grouping(
-            session, user_id
-        )
+        rubrics: dict = await db.fetch_all_links(session, user_id, group_by_rubric=True)
+
+    non_rubric_with_loaded_links = Rubric(name='Non-Rubric', links=rubrics.pop(None, []))
+
     text = md.text(
-        'Links with rubric:',
+        '☑️  Links with rubric:',
         *[
-            rubric.repr_with_link('\t * ', rubric_shift='\t - ')
-            for rubric in rubrics_with_loaded_links
+            rubric.repr_with_links('👉', rubric_shift='🔘', links=links)
+            for rubric, links in rubrics.items()
         ],
-        '=' * 25,
-        'Non-rubric links:',
-        *[
-            '{list_divider} {tg_repr}'.format(list_divider='\t * ', tg_repr=link.tg_repr)
-            for link in links_without_rubric
-        ],
+        '➖' * 15,
+        '☑️  Non-rubric links:',
+        non_rubric_with_loaded_links.repr_with_links('👉', rubric_shift='🖤'),
         sep='\n'
     )
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
@@ -80,13 +80,13 @@ async def dump_link__catch_message(message: types.Message) -> None:
     user_id = message.from_user.id
 
     async with async_db_sessionmaker() as session:
-        links = await db.fetch_all_links(session, user_id, with_rubric_join=True)
+        links = await db.fetch_all_links(session, user_id, with_rubric=True)
 
     if links:
-        text = 'Please, choose one of the list below:'
+        text = '❔ Choose one of the list below:'
         keyboard = LinkListInlineKeyboard(links, action=LINK_CB_ACTION_FOR_LINK_DUMPING, row_width=1)
     else:
-        text = 'You don`t have any links'
+        text = '🕳 You don`t have any links'
         keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
 
     await message.answer(text, reply_markup=keyboard)
@@ -98,9 +98,13 @@ async def dump_link__handle_link_data(call: types.CallbackQuery, callback_data: 
     link_id = callback_data['id']
 
     async with async_db_sessionmaker() as session:
-        link = await db.fetch_one_link(session, link_id)
+        link = await db.fetch_one_link(session, link_id, with_rubric=True)
 
-    text = link.url
+    text = md.text(
+        f'☑️  {link.full_tg_repr}',
+        f'🧭 created at: {link.created_at.isoformat(" ")}',
+        sep='\n'
+    )
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
     await call.message.answer(text, reply_markup=keyboard)
 
@@ -120,25 +124,27 @@ async def see_links_by_rubric__catch_message(message: types.Message) -> None:
         if does_user_have_rubrics:
             rubrics = await db.fetch_all_rubrics(session, user_id)
 
-            text = 'Please, choose one of the list below:'
-            keyboard = RubricListInlineKeyboard(rubrics, action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING)
+            text = '❔ Choose one of the list below:'
+            keyboard = RubricListInlineKeyboard(
+                rubrics, action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING, row_width=1
+            )
             await message.answer(text, reply_markup=keyboard)
         else:
-            await message.answer('You don`t have any rubric to choose.')
+            await message.answer('🕳 You don`t have any rubric.')
 
 
 @dp.callback_query_handler(RUBRIC_CB.filter(action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING))
-async def see_links_by_rubric__show_links(call: types.CallbackQuery, callback_data: dict) -> None:
+async def see_links_by_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict) -> None:
     """ Answer with list of the links sorted by rubric """
     rubric_id = callback_data['id']
 
     async with async_db_sessionmaker() as session:
-        rubric_with_loaded_links = await db.fetch_one_rubric(session, rubric_id, with_links=True)
+        rubrics = await db.fetch_one_rubric(session, rubric_id, with_links=True)
 
-    if rubric_with_loaded_links.links:
-        text = rubric_with_loaded_links.repr_with_link('\t * ')
+    if rubrics.links:
+        text = rubrics.repr_with_loaded_links('👉')
     else:
-        text = 'Rubric is empty! It`s no one link related with this rubric.'
+        text = '🕳 Rubric is empty! It`s no one link is related with this rubric.'
 
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
     await call.message.answer(text, reply_markup=keyboard, disable_web_page_preview=True)
@@ -149,13 +155,28 @@ async def see_links_by_rubric__show_links(call: types.CallbackQuery, callback_da
 
 # Add link -------------------------------------------------------------------------------------------------------------
 async def add_link__finish(user_id: int, message: types.Message, state: FSMContext, link_data: dict) -> None:
-    """ """
+    """
+    Add link to db. Finish state
+
+    :param user_id: for link data required user id
+    :type user_id: int
+    :param message: to answer
+    :type message: types.Message
+    :param state: to finish
+    :type state: FSMContext
+    :param link_data: for link instance creation
+    :type link_data: dict
+
+    :return: None
+    :rtype: None
+    """
+
     link = Link(**link_data, user_id=user_id)
 
     async with async_db_sessionmaker() as session:
         await db.add_link(session, link)
 
-    text = md.hbold('The new link has been added!')
+    text = md.hbold('✅ The new link has been added!')
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
     await message.answer(text, reply_markup=keyboard)
 
@@ -170,13 +191,13 @@ async def add_link__ask_for_rubric(message: types.Message, state: FSMContext) ->
         rubrics = await db.fetch_all_rubrics(session, user_id)
 
     if rubrics:
-        text = 'Choose one of the rubrics [optional]'
-        keyboard = RubricListInlineKeyboard(rubrics, action=RUBRIC_CB_ACTION_FOR_LINK_ADDING)
+        text = '❔ Choose one of the rubrics [🆓 optional]'
+        keyboard = RubricListInlineKeyboard(rubrics, action=RUBRIC_CB_ACTION_FOR_LINK_ADDING, row_width=1)
         await message.answer(text, reply_markup=keyboard)
 
         await LinkAddingStatesGroup.next()
     else:
-        text = 'You don`t have any rubric to pin link. This link will be added in non-rubric category!'
+        text = '💿 You don`t have any rubric to pin link. This link will be added in | 🖤 | non-rubric category!'
         # remove empty value keyboard
         keyboard = types.ReplyKeyboardRemove()
         await message.answer(text, reply_markup=keyboard)
@@ -190,7 +211,7 @@ async def add_link__ask_for_rubric(message: types.Message, state: FSMContext) ->
 @dp.message_handler(text=LinksAndRubricsMainReplyKeyboard.text_for_button_to_add_link)
 async def add_link__catch_message(message: types.Message) -> None:
     """ Trigger on link adding message. Ask to input link url """
-    text = 'Input url [required].'
+    text = '📝 Input url [❗️ required].'
     keyboard = types.ReplyKeyboardRemove()
     await message.answer(text, reply_markup=keyboard)
 
@@ -209,9 +230,9 @@ async def add_link__handle_link_url(message: types.Message, state: FSMContext) -
     else:
         async with state.proxy() as data:
             data['url'] = link_url
-        await message.answer('Link url has been accepted.')
+        await message.answer('👌 Link url has been accepted.')
 
-        text = 'Input link description [optional].'
+        text = '📝 Input link description [🆓 optional].'
         # `one_time_keyboard` is omitted - it`ll be used few times [for description and rubric]
         keyboard = EmptyValueReplyKeyboard(resize_keyboard=True)
         await message.answer(text, reply_markup=keyboard)
@@ -224,7 +245,7 @@ async def add_link__handle_empty_link_description(message: types.Message, state:
     """ Handle empty link description. Ask to choose rubric """
     async with state.proxy() as data:
         data['description'] = None
-    await message.answer('Empty value has been accepted as link description.')
+    await message.answer('👌 Empty value has been accepted as link description.')
 
     await add_link__ask_for_rubric(message, state)
 
@@ -241,7 +262,7 @@ async def add_link__handle_link_description(message: types.Message, state: FSMCo
     else:
         async with state.proxy() as data:
             data['description'] = link_description
-        await message.answer('Link description has been accepted.')
+        await message.answer('👌 Link description has been accepted.')
 
         await add_link__ask_for_rubric(message, state)
 
@@ -254,7 +275,7 @@ async def add_link__handle_empty_link_rubric(message: types.Message, state: FSMC
     async with state.proxy() as data:
         data['rubric_id'] = None
 
-    await message.answer('Empty value has been accepted as link rubric.')
+    await message.answer('👌 Empty value has been accepted as link rubric.')
 
     await add_link__finish(user_id, message, state, data)
 
@@ -269,7 +290,7 @@ async def add_link__handle_link_rubric(call: types.CallbackQuery, callback_data:
 
     async with state.proxy() as data:
         data['rubric_id'] = callback_data['id']
-    await call.message.answer('Link rubric has been accepted.')
+    await call.message.answer('👌 Link rubric has been accepted.')
 
     await call.answer()
 
@@ -284,13 +305,13 @@ async def delete_link__catch_message(message: types.Message) -> None:
     user_id = message.from_user.id
 
     async with async_db_sessionmaker() as session:
-        links = await db.fetch_all_links(session, user_id, with_rubric_join=True)
+        links = await db.fetch_all_links(session, user_id, with_rubric=True)
 
     if links:
-        text = 'Please, choose one of the list below:'
+        text = '❔ Choose one of the list below:'
         keyboard = LinkListInlineKeyboard(links, action=LINK_CB_ACTION_FOR_LINK_DELETING, row_width=1)
     else:
-        text = 'You don`t have any links'
+        text = '🕳 You don`t have any links'
         keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
 
     await message.answer(text, reply_markup=keyboard)
@@ -302,9 +323,9 @@ async def delete_link__handle_link_data(call: types.CallbackQuery, callback_data
     link_id = callback_data['id']
 
     async with async_db_sessionmaker() as session:
-        await db.delete_link(session, link_id)
+        await db.delete_one_link(session, link_id)
 
-    text = f'Link has been deleted!'
+    text = f'✅ Link has been deleted!'
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
     await call.message.answer(text, reply_markup=keyboard, disable_web_page_preview=True)
 
