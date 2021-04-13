@@ -19,7 +19,7 @@ from ...db.models import Rubric
 
 
 # CB = callback data ------------------------------------------
-RUBRIC_CB = CallbackData('rubric_data', 'action', 'id', 'name')
+RUBRIC_CB = CallbackData('rubric_data', 'action', 'id')
 # -------------------------------------------------------------
 
 
@@ -48,7 +48,7 @@ class RubricListInlineKeyboard(types.InlineKeyboardMarkup):
         :keyword empty_value_on_the_start: if passed button with empty value will be added on the top
         :type empty_value_on_the_start: bool
         :keyword except_rubrics_with_id: to remove particular rubrics from keyboard;
-                                         might be used on links moving
+                                         might be used on links moving when deleting rubric should not be shown
         :type except_rubrics_with_id: Optional[set[int]]
 
         :param kwargs: named arguments that will be passed in simple `InlineKeyboardMarkup` constructor
@@ -62,20 +62,18 @@ class RubricListInlineKeyboard(types.InlineKeyboardMarkup):
         if empty_value_on_the_start:
             buttons.append(types.InlineKeyboardButton(
                 EMPTY_VALUE,
-                callback_data=RUBRIC_CB.new(action=action, id=EMPTY_VALUE, name=EMPTY_VALUE)
+                callback_data=RUBRIC_CB.new(action=action, id=EMPTY_VALUE)
             ))
 
         for rubric in rubrics:
             rubric_id = rubric.id
 
-            if rubric not in except_rubrics_with_id:
-                rubric_name = rubric.name
-                rubric_description = rubric.description
-                text = f'{rubric_name} [{rubric_description}]' if rubric_description else rubric_name
+            if rubric_id not in except_rubrics_with_id:
+                text = rubric.name
 
                 button = types.InlineKeyboardButton(
                     text,
-                    callback_data=RUBRIC_CB.new(action=action, id=rubric_id, name=rubric_name)
+                    callback_data=RUBRIC_CB.new(action=action, id=rubric_id)
                 )
                 buttons.append(button)
 
