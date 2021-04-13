@@ -36,7 +36,7 @@ def get_formatted_error_message(validation_error: pydantic.ValidationError,
     :rtype: str
     """
 
-    error_messages = ['Incorrect input!'] if error_message_prefix else []
+    error_messages = ['💿 Please, correct your input:'] if error_message_prefix else []
 
     for error in validation_error.errors():
         error_location: str = error['loc'][0]        # ruined attr name

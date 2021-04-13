@@ -73,10 +73,18 @@ class Rubric(Base):
         """ Return short repr with description in square brackets if exists """
         return md.text(self.short_tg_repr, f'[{self.description}]') if self.description else self.short_tg_repr
 
-    def repr_with_links(self, link_shift: str, *, rubric_shift: str = '') -> str:
+    def repr_with_links(self, link_shift: str, *, rubric_shift: str = '', links: list['Link'] = None) -> str:
         """
         Return formatted list of the rubric links with rubric name as title.
-        Requires links loading.
+        Requires links loading or passing as argument.
+
+        :param link_shift: shift string before link
+        :type link_shift: str
+
+        :keyword rubric_shift: shift string before rubric and before link shift
+        :type rubric_shift: str
+        :keyword links: links of have not loaded with rubric
+        :type links: list[Link]
 
         :return: formatted list of the rubric links
         :rtype: str
@@ -84,18 +92,18 @@ class Rubric(Base):
         :raises MissingGreenlet: raised if rubric was not loaded with links
         """
 
-        rubric_links = self.links
-        if rubric_links:
-            text = md.text(
-                f'{rubric_shift} {self.short_tg_repr}',
-                *[
-                    f'{rubric_shift} {link_shift} {link.tg_repr}'
-                    for link in rubric_links
-                ],
-                sep='\n'
-            )
-        else:
-            text = md.text(f'{rubric_shift} {self.short_tg_repr} (empty)')
+        rubric_links = links if links else self.links
+
+        link_shift = '\t' * 8 + link_shift
+
+        text = md.text(
+            f'{rubric_shift} {self.short_tg_repr}',
+            *[
+                f'{link_shift} {link.short_tg_repr}'
+                for link in rubric_links
+            ],
+            sep='\n'
+        )
 
         return text
 
@@ -130,7 +138,7 @@ class Link(Base):
     def short_tg_repr(self) -> str:
         """ Hide link in the description if exists else hide link displaying in url """
         if self.description:
-            text = md.text(md.hlink(self.description, self.url), f'[{self.short_url}]', sep='\n')
+            text = md.text(self.description, f'[{self.short_url}]', sep='\n')
         else:
             text = self.short_url
 

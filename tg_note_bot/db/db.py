@@ -23,7 +23,7 @@ Contains functions that interact with db.
 .. async:: delete_all_links_by_user(session: AsyncSession, user_id: int) -> None
 .. async:: delete_all_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
 .. async:: delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
-.. async:: delete_all_links_by_rubric(session: AsyncSession, rubric_id: Optional[int]) -> None
+.. async:: delete_all_links_by_rubric(session: AsyncSession, rubric_id: int) -> None
 
 .. async:: count_user_rubrics(session: AsyncSession, user_id: int) -> int
 .. async:: does_rubric_have_any_links(session: AsyncSession, rubric_id: int) -> bool
@@ -473,7 +473,7 @@ async def delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: in
         await session.execute(stmt)
 
 
-async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: Optional[int]) -> None:
+async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: int) -> None:
     """
     Delete all links that related with rubric.
 
@@ -489,6 +489,23 @@ async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: Optional[
     async with session.begin():
         stmt = sa.delete(Link).where(Link.rubric_id == rubric_id)
         await session.execute(stmt)
+
+
+async def delete_all_user_data(session: AsyncSession, user_id: int) -> None:
+    """
+    Delete all links and rubrics that related with user.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id
+    :type user_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    await delete_all_links_by_user(session, user_id)
+    await delete_all_rubrics(session, user_id)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
