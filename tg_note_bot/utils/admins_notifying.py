@@ -23,7 +23,7 @@ async def notify_admins_on_startup(dp: Dispatcher) -> None:
     :rtype: None
     """
 
-    message = 'Bot is running!'
+    message = '🏳️ Bot is running!'
 
     for admin in ADMINS:
         try:

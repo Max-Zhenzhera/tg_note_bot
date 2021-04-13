@@ -52,5 +52,29 @@ DB_PATH = BASE_DIR / f'{DB_NAME}.db'
 ADMINS: list[int] = [int(admin_id) for admin_id in os.getenv('ADMINS').split(',')]
 THROTTLING_RATE_LIMIT_IN_SECONDS: float = .2
 
-EMPTY_VALUE = 'Pass'
+EMPTY_VALUE = '➡️ Pass'
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+# USED EMOJIS ///////////////////////////////////////////////////////////////////////////////////////////////
+NON_RUBRIC_CATEGORY = '🖤'   # also rubric shift
+
+TO_SEE = '👀'
+TO_CREATE = '💾'
+TO_DELETE = '🗑'
+TO_DO_SERIOUS_DELETE = '👊', '🔥'
+
+RUBRIC_SHIFT = '🔘'
+LINK_SHIFT = '👉'
+INPUT_ARGUMENT = '📝'
+ARGUMENT_ACCEPTED = '👌'
+ARGUMENT_UNIQUE = '🔑'
+ARGUMENT_REQUIRED = '❗️'    # !
+ARGUMENT_OPTIONAL = '🆓'
+ERROR_OCCURED = '🛑'
+REQUEST_EXECUTED = '☑️ '    # grey ✅
+ACTION_COMPLETED = '✅'
+CHOOSE_CHOICE = '❔'
+EMPTY_RESULT = '🕳'
+TIME_POINT = '🧭'
+NOTE_MESSAGE = '💿'
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
