@@ -6,26 +6,39 @@ Contains functions that interact with db.
 .. async:: add_rubric(session: AsyncSession, rubric: Rubric) -> None
 .. async:: add_link(session: AsyncSession, link: Link) -> None
 
+.. async:: fetch_one_rubric(session: AsyncSession, rubric_id: int, *, with_links: bool = False) -> Rubric
+.. async:: fetch_all_rubrics(session: AsyncSession, user_id: int, *, with_links: bool = False) -> list[Rubric]
+.. async:: fetch_one_link(session: AsyncSession, link_id: int, *, with_rubric: bool = True) -> Link
+.. async:: fetch_all_links(session: AsyncSession, user_id: int, *, with_rubric: bool = False,
+        group_by_rubric: bool = False) -> Union[list[Link], dict[Optional[Rubric], Link]]
+
+.. async:: migrate_links_in_another_rubric(session: AsyncSession, old_rubric_id: int, new_rubric_id: int) -> None
+
 .. async:: delete_entity_by_instance(session: AsyncSession, entity: Base) -> None
 .. async:: delete_user(session: AsyncSession, user_id: int) -> None
-.. async:: delete_rubric(session: AsyncSession, rubric_id: int, *, delete_links: bool = False) -> None
-.. async:: delete_link(session: AsyncSession, link_id: int) -> None
-
-.. async:: fetch_all_rubrics(session: AsyncSession, user_id: int, *, with_links: bool = False) -> list[Rubric]
-.. async:: fetch_one_rubric(session: AsyncSession, rubric_id: int, *, with_links: bool = False) -> Rubric
-.. async:: fetch_all_links_without_rubric(session: AsyncSession, user_id: int) -> list[Link]
-.. async:: fetch_all_links_with_rubric_grouping(session: AsyncSession, user_id: int) -> tuple[list[Rubric], list[Link]]
-
-
-.. async:: migrate_links_in_another_rubric(session: AsyncSession, user_id: int, old_rubric_id: int, new_rubric_id: int
-        ) -> None
+.. async:: delete_one_rubric(session: AsyncSession, rubric_id: int, *, delete_links: bool = False,
+        migrate_links_in_rubric_with_id: int = False) -> None
+.. async:: delete_all_rubrics(session: AsyncSession, user_id: int, *, delete_links: bool = False) -> None
+.. async:: delete_one_link(session: AsyncSession, link_id: int) -> None
+.. async:: delete_all_links_by_user(session: AsyncSession, user_id: int) -> None
+.. async:: delete_all_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
+.. async:: delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
+.. async:: delete_all_links_by_rubric(session: AsyncSession, rubric_id: Optional[int]) -> None
 
 .. async:: count_user_rubrics(session: AsyncSession, user_id: int) -> int
 .. async:: does_rubric_have_any_links(session: AsyncSession, rubric_id: int) -> bool
 .. async:: does_rubric_have_unique_name(session: AsyncSession, user_id: int, rubric_name: str) -> bool
+
+.. async:: count_bot_users(session: AsyncSession) -> int
 """
 
+import itertools
 import logging
+import operator
+from typing import (
+    Optional,
+    Union
+)
 
 import sqlalchemy as sa
 from sqlalchemy import exc
@@ -48,7 +61,7 @@ from .errors import UserAlreadyInDbError
 logger = logging.getLogger(__name__)
 
 
-# adding ---------------------------------------------------------------------------------------------------------------
+# create ---------------------------------------------------------------------------------------------------------------
 async def add_entity(session: AsyncSession, entity: Base) -> None:
     """
     Execute statement [add instance to session] and commit transaction.
@@ -66,6 +79,7 @@ async def add_entity(session: AsyncSession, entity: Base) -> None:
         session.add(entity)
 
 
+# # User
 async def add_user(session: AsyncSession, user: User) -> None:
     """
     Add user.
@@ -91,6 +105,7 @@ async def add_user(session: AsyncSession, user: User) -> None:
         logger.debug(f'|user adding| User with <id={User.id}> has been added in the database.')
 
 
+# # Rubric
 async def add_rubric(session: AsyncSession, rubric: Rubric) -> None:
     """
     Add rubric.
@@ -108,6 +123,7 @@ async def add_rubric(session: AsyncSession, rubric: Rubric) -> None:
     await add_entity(session, rubric)
 
 
+# # Link
 async def add_link(session: AsyncSession, link: Link) -> None:
     """
     Add link.
@@ -126,112 +142,8 @@ async def add_link(session: AsyncSession, link: Link) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-# deleting -------------------------------------------------------------------------------------------------------------
-async def delete_entity_by_instance(session: AsyncSession, entity: Base) -> None:
-    """
-    Delete entity by model instance.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param entity: model instance
-    :type entity: Base
-
-    :return: None
-    :rtype: None
-    """
-
-    async with session.begin():
-        await session.delete(entity)
-
-
-async def delete_user(session: AsyncSession, user_id: int) -> None:
-    """
-    Delete user.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param user_id: user id [as `User` keeps `tg_id` column - means user tg id]
-    :type user_id: int
-
-    :return: None
-    :rtype: None
-    """
-
-    async with session.begin():
-        stmt = sa.delete(User).where(User.id == user_id)
-        await session.execute(stmt)
-
-
-async def delete_rubric(session: AsyncSession, rubric_id: int, *, delete_links: bool = False) -> None:
-    """
-    Delete rubric. Also, optionally, delete rubric links.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param rubric_id: rubric id
-    :type rubric_id: int
-    :keyword delete_links: to delete rubric links [by default links move on non rubric section]
-    :type delete_links: bool
-
-    :return: None
-    :rtype: None
-    """
-
-    async with session.begin():
-        if delete_links:
-            stmt = sa.delete(Link).where(Link.rubric_id == rubric_id)
-            await session.execute(stmt)
-
-        stmt = sa.delete(Rubric).where(Rubric.id == rubric_id)
-        await session.execute(stmt)
-
-
-async def delete_link(session: AsyncSession, link_id: int) -> None:
-    """
-    Delete link.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param link_id: link id
-    :type link_id: int
-
-    :return: None
-    :rtype: None
-    """
-
-    async with session.begin():
-        stmt = sa.delete(Link).where(Link.id == link_id)
-        await session.execute(stmt)
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# fetching -------------------------------------------------------------------------------------------------------------
-async def fetch_all_rubrics(session: AsyncSession, user_id: int, *, with_links: bool = False) -> list[Rubric]:
-    """
-    Fetch all rubrics. Optionally, might be loaded rubric links.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param user_id: user id
-    :type user_id: int
-    :keyword with_links: to load rubric links
-    :type with_links: bool
-
-    :return: rubrics
-    :rtype: list[Rubric]
-    """
-
-    if with_links:
-        stmt = select(Rubric).options(selectinload(Rubric.links)).where(Rubric.user_id == user_id).order_by(Rubric.name)
-    else:
-        stmt = select(Rubric).where(Rubric.user_id == user_id).order_by(Rubric.name)
-
-    result = await session.execute(stmt)
-    rubrics = list(result.scalars())
-
-    return rubrics
-
-
+# read -----------------------------------------------------------------------------------------------------------------
+# # Rubric
 async def fetch_one_rubric(session: AsyncSession, rubric_id: int, *, with_links: bool = False) -> Rubric:
     """
     Fetch one rubric. Optionally, might be loaded rubric links.
@@ -258,47 +170,50 @@ async def fetch_one_rubric(session: AsyncSession, rubric_id: int, *, with_links:
     return rubric
 
 
-async def fetch_all_links(session: AsyncSession, user_id: int, *, with_rubric_join: bool = False) -> list[Link]:
+async def fetch_all_rubrics(session: AsyncSession, user_id: int, *, with_links: bool = False) -> list[Rubric]:
     """
-    Fetch all links.
+    Fetch all rubrics. Optionally, might be loaded rubric links.
 
     :param session: db connection
     :type session: AsyncSession
     :param user_id: user id
     :type user_id: int
-    :keyword with_rubric_join: to join link rubric data
-    :type with_rubric_join: bool
+    :keyword with_links: to load rubric links
+    :type with_links: bool
 
-    :return: links
-    :rtype: list[Link]
+    :return: rubrics
+    :rtype: list[Rubric]
     """
 
-    if with_rubric_join:
-        stmt = select(Link).options(joinedload(Link.rubric)).where(Link.user_id == user_id)
+    if with_links:
+        stmt = select(Rubric).options(selectinload(Rubric.links)).where(Rubric.user_id == user_id).order_by(Rubric.name)
     else:
-        stmt = select(Link).where(Link.user_id == user_id).order_by(Link.rubric_id)
+        stmt = select(Rubric).where(Rubric.user_id == user_id).order_by(Rubric.name)
 
     result = await session.execute(stmt)
-    links = list(result.scalars())
+    rubrics = list(result.scalars())
 
-    return links
+    return rubrics
 
 
-async def fetch_one_link(session: AsyncSession, link_id: int, *, with_rubric_join: bool = True) -> Link:
+# # Link
+async def fetch_one_link(session: AsyncSession, link_id: int, *, with_rubric: bool = True) -> Link:
+    """
+    Fetch one link. Optionally, might be rubric loaded.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param link_id: link id
+    :type link_id: int
+    :param with_rubric: to load link`s rubric
+    :type with_rubric: bool
+
+    :return: link
+    :rtype: Link
     """
 
-    :param session:
-    :type session:
-    :param link_id:
-    :type link_id:
-    :param with_rubric_join:
-    :type with_rubric_join:
-    :return:
-    :rtype:
-    """
-
-    if with_rubric_join:
-        stmt = select(Link).options(selectinload(Link.rubric)).where(Link.id == link_id)
+    if with_rubric:
+        stmt = select(Link).options(joinedload(Link.rubric)).where(Link.id == link_id)
     else:
         stmt = select(Link).where(Link.id == link_id)
 
@@ -308,84 +223,272 @@ async def fetch_one_link(session: AsyncSession, link_id: int, *, with_rubric_joi
     return link
 
 
-async def fetch_all_links_without_rubric(session: AsyncSession, user_id: int) -> list[Link]:
+async def fetch_all_links(session: AsyncSession, user_id: int,
+                          *,
+                          with_rubric: bool = False, group_by_rubric: bool = False
+                          ) -> Union[list[Link], dict[Optional[Rubric], Link]]:
     """
-    Fetch all links without rubric.
-    Supposed to be invoked after `fetch_all_rubrics(with_links=True)`,
-    such this a quick way to get links ordered by rubrics.
+    Fetch all links. Optionally, result might be grouped by link`s rubrics or simply loaded with rubric data.
 
     :param session: db connection
     :type session: AsyncSession
     :param user_id: user id
     :type user_id: int
+    :keyword with_rubric: to join rubric data to link
+    :type with_rubric: bool
+    :keyword group_by_rubric: to return links grouped by rubrics
+        [with this flag - flag `with_rubric` will be turned in automatically]
+    :type group_by_rubric: bool
 
-    :return: rubrics
-    :rtype: list[Link]
+    :return: links
+    :rtype: Union[list[Link], dict[Optional[Rubric], Link]]
     """
 
-    stmt = select(Link).where(sa.and_(Link.user_id == user_id, Link.rubric_id == None)).order_by(Link.url)
+    with_rubric = True if group_by_rubric else with_rubric
+
+    if with_rubric:
+        stmt = select(Link).options(joinedload(Link.rubric)).where(Link.user_id == user_id)
+    else:
+        stmt = select(Link).where(Link.user_id == user_id).order_by(Link.rubric_id)
+
     result = await session.execute(stmt)
     links = list(result.scalars())
 
+    if group_by_rubric:
+        # assert that rubric data is loaded
+        rubric_attr_name_in_link = 'rubric'
+
+        links = {
+            rubric: list(rubric_links)
+            for rubric, rubric_links in itertools.groupby(links, operator.attrgetter(rubric_attr_name_in_link))
+        }
+
     return links
-
-
-async def fetch_all_links_with_rubric_grouping(session: AsyncSession, user_id: int) -> tuple[list[Rubric], list[Link]]:
-    """
-    Fetch all links with rubric grouping (non-rubric links has not excluded).
-    Helps to avoid fetching by 2 different functions.
-
-    Result structure:
-        * tuple - contains 2 lists:
-            * first list - rubrics with loaded links;
-            * second list - links without rubric.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param user_id: user id
-    :type user_id: int
-
-    :return: nicely groped user links
-    :rtype: tuple[list[Rubric], list[Link]]
-    """
-
-    rubrics_with_loaded_links = await fetch_all_rubrics(session, user_id, with_links=True)
-    links_without_rubric = await fetch_all_links_without_rubric(session, user_id)
-
-    return (rubrics_with_loaded_links, links_without_rubric)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-# updating -------------------------------------------------------------------------------------------------------------
-async def migrate_links_in_another_rubric(session: AsyncSession, user_id: int, old_rubric_id: int, new_rubric_id: int
-                                          ) -> None:
+# update ---------------------------------------------------------------------------------------------------------------
+# # Link
+async def migrate_links_in_another_rubric(session: AsyncSession, old_rubric_id: int, new_rubric_id: int) -> None:
     """
-    Move all links in another rubric.
+    Move all links from ine rubric in another rubric.
 
     :param session: db connection
     :type session: AsyncSession
-    :param user_id: user_id
-    :type user_id: int
-    :param old_rubric_id: update links !with! this rubric
+    :param old_rubric_id: move links !from! this rubric
     :type old_rubric_id: int
-    :param new_rubric_id: update links !on! this rubric
+    :param new_rubric_id: move links !in! this rubric
     :type new_rubric_id: int
 
     :return: None
     :rtype: None
     """
 
-    stmt = (
-        sa.update(Link).
-        where(
-            sa.and_(
-                Link.user_id == user_id,
-                Link.rubric_id == old_rubric_id
-            )
-        ).
-        values(rubric_id=new_rubric_id)
-    )
-    await session.execute(stmt)
+    async with session.begin():
+        stmt = (
+            sa.update(Link).
+            where(Link.rubric_id == old_rubric_id).
+            values(rubric_id=new_rubric_id)
+        )
+        await session.execute(stmt)
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# delete ---------------------------------------------------------------------------------------------------------------
+async def delete_entity_by_instance(session: AsyncSession, entity: Base) -> None:
+    """
+    Delete entity by model instance.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param entity: model instance
+    :type entity: Base
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        await session.delete(entity)
+
+
+# # User
+async def delete_user(session: AsyncSession, user_id: int) -> None:
+    """
+    Delete user.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id [as `User` keeps `id` column - means user tg id]
+    :type user_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(User).where(User.id == user_id)
+        await session.execute(stmt)
+
+
+# # Rubric
+async def delete_one_rubric(session: AsyncSession, rubric_id: int,
+                            *,
+                            delete_links: bool = False, migrate_links_in_rubric_with_id: int = False
+                            ) -> None:
+    """
+    Delete rubric. Optionally, it is possible to:
+        * migrate related links in non-rubric category [by default]
+        * delete related links [with `delete_links` flag]
+        * migrate related links in another rubric [with `migrate_links_in_rubric_with_id` int id value]
+
+    Note:
+        It is impossible to pass few arguments that make different operating with related links.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param rubric_id: rubric id
+    :type rubric_id: int
+    :keyword delete_links: to delete rubric and links that related with this rubric
+    :type delete_links: bool
+    :keyword migrate_links_in_rubric_with_id: to delete rubric and migrate related links in another rubric
+    :type migrate_links_in_rubric_with_id: int
+
+    :return: None
+    :rtype: None
+
+    :raises TypeError: raised if few arguments that make different operating with related links have passed
+    """
+
+    if delete_links and migrate_links_in_rubric_with_id:
+        msg = (
+            'It is impossible to pass few arguments that make different operating with related links! '
+            'Instead got <delete_links> and <migrate_links_in_rubric_with_id> arguments together.'
+        )
+        raise TypeError(msg)
+    elif delete_links:
+        await delete_all_links_by_rubric(session, rubric_id=rubric_id)
+    elif migrate_links_in_rubric_with_id:
+        await migrate_links_in_another_rubric(session, rubric_id, migrate_links_in_rubric_with_id)
+
+    async with session.begin():
+        stmt = sa.delete(Rubric).where(Rubric.id == rubric_id)
+        await session.execute(stmt)
+
+
+async def delete_all_rubrics(session: AsyncSession, user_id: int, *, delete_links: bool = False) -> None:
+    """
+    Delete all rubrics.
+    Optionally, it is possible to delete all links that related with rubrics [with `delete_links` flag].
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id
+    :type user_id: int
+    :param delete_links: to delete links that related with rubrics
+    :type delete_links: bool
+
+    :return: None
+    :rtype: None
+    """
+
+    if delete_links:
+        await delete_all_rubric_links_by_user(session, user_id)
+
+    async with session.begin():
+        stmt = sa.delete(Rubric).where(user_id == user_id)
+        await session.execute(stmt)
+
+
+# # Link
+async def delete_one_link(session: AsyncSession, link_id: int) -> None:
+    """
+    Delete link.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param link_id: link id
+    :type link_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(Link.id == link_id)
+        await session.execute(stmt)
+
+
+async def delete_all_links_by_user(session: AsyncSession, user_id: int) -> None:
+    """
+    Delete all links that related with user.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id
+    :type user_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(Link.user_id == user_id)
+        await session.execute(stmt)
+
+
+async def delete_all_rubric_links_by_user(session: AsyncSession, user_id: int) -> None:
+    """
+    Delete all links that have rubric and related with user.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id
+    :type user_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(sa.and_(Link.user_id == user_id, Link.rubric_id != None))
+        await session.execute(stmt)
+
+
+async def delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: int) -> None:
+    """
+    Delete all non-rubric links that related with user.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param user_id: user id
+    :type user_id: int
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(sa.and_(Link.user_id == user_id, Link.rubric_id == None))
+        await session.execute(stmt)
+
+
+async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: Optional[int]) -> None:
+    """
+    Delete all links that related with rubric.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param rubric_id: rubric id
+
+    :type rubric_id: int
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(Link.rubric_id == rubric_id)
+        await session.execute(stmt)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -450,3 +553,22 @@ async def does_rubric_have_unique_name(session: AsyncSession, user_id: int, rubr
     flag = False if result.first() else True
 
     return flag
+
+
+# # Statistic for admin
+async def count_bot_users(session: AsyncSession) -> int:
+    """
+    Return quantity of the bot users.
+
+    :param session: db connection
+    :type session: AsyncSession
+
+    :return: users quantity
+    :rtype: int
+    """
+
+    stmt = select(sa.func.count()).select_from(User)
+    result = await session.execute(stmt)
+    users_quantity = result.scalar()
+
+    return users_quantity

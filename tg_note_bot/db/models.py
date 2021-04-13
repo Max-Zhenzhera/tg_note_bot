@@ -73,27 +73,29 @@ class Rubric(Base):
         """ Return short repr with description in square brackets if exists """
         return md.text(self.short_tg_repr, f'[{self.description}]') if self.description else self.short_tg_repr
 
-    def repr_with_link(self, link_shift: str, *, rubric_shift: str = '') -> str:
+    def repr_with_links(self, link_shift: str, *, rubric_shift: str = '') -> str:
         """
-        Return formatted list of the rubric links.
+        Return formatted list of the rubric links with rubric name as title.
+        Requires links loading.
 
         :return: formatted list of the rubric links
         :rtype: str
 
         :raises MissingGreenlet: raised if rubric was not loaded with links
         """
+
         rubric_links = self.links
         if rubric_links:
             text = md.text(
                 f'{rubric_shift} {self.short_tg_repr}',
                 *[
                     f'{rubric_shift} {link_shift} {link.tg_repr}'
-                    for link in self.links
+                    for link in rubric_links
                 ],
                 sep='\n'
             )
         else:
-            text = md.text(f'{rubric_shift} {self.short_tg_repr} [empty]')
+            text = md.text(f'{rubric_shift} {self.short_tg_repr} (empty)')
 
         return text
 
@@ -125,7 +127,27 @@ class Link(Base):
         return self.url.removeprefix('http://').removeprefix('https://').removeprefix('www.')
 
     @property
-    def tg_repr(self) -> str:
+    def short_tg_repr(self) -> str:
         """ Hide link in the description if exists else hide link displaying in url """
-        return f'{md.hlink(self.description, self.url)}\n[{self.short_url}]' if self.description else self.short_url
+        if self.description:
+            text = md.text(md.hlink(self.description, self.url), f'[{self.short_url}]', sep='\n')
+        else:
+            text = self.short_url
 
+        return text
+
+    @property
+    def full_tg_repr(self) -> str:
+        """
+        Add before `short_tg_repr` property rubric name in square brackets if exists.
+        Requires rubric loading.
+
+        :raises MissingGreenlet: raised if link was not loaded with rubric
+        """
+
+        if self.rubric:
+            text = md.text(self.rubric.name, '|', self.short_tg_repr)
+        else:
+            text = md.text('🖤', '|', self.short_tg_repr)
+
+        return text
