@@ -1,5 +1,25 @@
 """
 Contains user links handlers.
+
+.. async:: see_links(message: types.Message) -> None
+
+.. async:: dump_link__catch_message(message: types.Message) -> None
+.. async:: dump_link__handle_link_data(call: types.CallbackQuery, callback_data: dict) -> None
+
+.. async:: see_links_by_rubric__catch_message(message: types.Message) -> None
+.. async:: see_links_by_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict) -> None
+
+.. async:: add_link__finish(user_id: int, message: types.Message, state: FSMContext) -> None
+.. async:: add_link__ask_for_rubric(message: types.Message, state: FSMContext) -> None
+.. async:: add_link__catch_message(message: types.Message) -> None
+.. async:: add_link__handle_link_url(message: types.Message, state: FSMContext) -> None
+.. async:: add_link__handle_empty_link_description(message: types.Message, state: FSMContext) -> None
+.. async:: add_link__handle_link_description(message: types.Message, state: FSMContext) -> None
+.. async:: add_link__handle_empty_link_rubric(message: types.Message, state: FSMContext) -> None
+.. async:: add_link__handle_link_rubric(call: types.CallbackQuery, callback_data: dict, state: FSMContext) -> None
+
+.. async:: delete_link__catch_message(message: types.Message) -> None
+.. async:: delete_link__handle_link_data(call: types.CallbackQuery, callback_data: dict)
 """
 
 import logging
@@ -63,7 +83,7 @@ async def see_links(message: types.Message) -> None:
             rubric.repr_with_links('👉', rubric_shift='🔘', links=links)
             for rubric, links in rubrics.items()
         ],
-        '➖' * 15,
+        '➖' * 10,
         '☑️  Non-rubric links:',
         non_rubric_with_loaded_links.repr_with_links('👉', rubric_shift='🖤'),
         sep='\n'
@@ -95,14 +115,14 @@ async def dump_link__catch_message(message: types.Message) -> None:
 @dp.callback_query_handler(LINK_CB.filter(action=LINK_CB_ACTION_FOR_LINK_DUMPING))
 async def dump_link__handle_link_data(call: types.CallbackQuery, callback_data: dict) -> None:
     """ Handle link data. Dump link """
-    link_id = callback_data['id']
+    link_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
         link = await db.fetch_one_link(session, link_id, with_rubric=True)
 
     text = md.text(
-        f'☑️  {link.full_tg_repr}',
-        f'🧭 created at: {link.created_at.isoformat(" ")}',
+        f'☑️  {link.short_url_with_description_and_rubric}',
+        f'🧭 created at: {link.created_at.strftime("%Y-%m-%d %H:%M:%S")}',
         sep='\n'
     )
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
@@ -128,21 +148,23 @@ async def see_links_by_rubric__catch_message(message: types.Message) -> None:
             keyboard = RubricListInlineKeyboard(
                 rubrics, action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING, row_width=1
             )
-            await message.answer(text, reply_markup=keyboard)
         else:
-            await message.answer('🕳 You don`t have any rubric.')
+            text = '🕳 You don`t have any rubric.'
+            keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
+
+        await message.answer(text, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(RUBRIC_CB.filter(action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING))
 async def see_links_by_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict) -> None:
     """ Answer with list of the links sorted by rubric """
-    rubric_id = callback_data['id']
+    rubric_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
         rubrics = await db.fetch_one_rubric(session, rubric_id, with_links=True)
 
     if rubrics.links:
-        text = rubrics.repr_with_loaded_links('👉')
+        text = rubrics.repr_with_links('👉')
     else:
         text = '🕳 Rubric is empty! It`s no one link is related with this rubric.'
 
@@ -154,7 +176,7 @@ async def see_links_by_rubric__handle_rubric_data(call: types.CallbackQuery, cal
 
 
 # Add link -------------------------------------------------------------------------------------------------------------
-async def add_link__finish(user_id: int, message: types.Message, state: FSMContext, link_data: dict) -> None:
+async def add_link__finish(user_id: int, message: types.Message, state: FSMContext) -> None:
     """
     Add link to db. Finish state
 
@@ -171,6 +193,7 @@ async def add_link__finish(user_id: int, message: types.Message, state: FSMConte
     :rtype: None
     """
 
+    link_data = await state.get_data()
     link = Link(**link_data, user_id=user_id)
 
     async with async_db_sessionmaker() as session:
@@ -197,7 +220,7 @@ async def add_link__ask_for_rubric(message: types.Message, state: FSMContext) ->
 
         await LinkAddingStatesGroup.next()
     else:
-        text = '💿 You don`t have any rubric to pin link. This link will be added in | 🖤 | non-rubric category!'
+        text = '💿 You don`t have any rubric to pin link.\nThis link will be added in (🖤) non-rubric category!'
         # remove empty value keyboard
         keyboard = types.ReplyKeyboardRemove()
         await message.answer(text, reply_markup=keyboard)
@@ -205,7 +228,7 @@ async def add_link__ask_for_rubric(message: types.Message, state: FSMContext) ->
         async with state.proxy() as data:
             data['rubric_id'] = None
 
-        await add_link__finish(user_id, message, state, data)
+        await add_link__finish(user_id, message, state)
 
 
 @dp.message_handler(text=LinksAndRubricsMainReplyKeyboard.text_for_button_to_add_link)
@@ -277,7 +300,7 @@ async def add_link__handle_empty_link_rubric(message: types.Message, state: FSMC
 
     await message.answer('👌 Empty value has been accepted as link rubric.')
 
-    await add_link__finish(user_id, message, state, data)
+    await add_link__finish(user_id, message, state)
 
 
 @dp.callback_query_handler(
@@ -289,12 +312,12 @@ async def add_link__handle_link_rubric(call: types.CallbackQuery, callback_data:
     user_id = call.from_user.id
 
     async with state.proxy() as data:
-        data['rubric_id'] = callback_data['id']
+        data['rubric_id'] = int(callback_data['id'])
     await call.message.answer('👌 Link rubric has been accepted.')
 
     await call.answer()
 
-    await add_link__finish(user_id, call.message, state, data)
+    await add_link__finish(user_id, call.message, state)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -320,12 +343,12 @@ async def delete_link__catch_message(message: types.Message) -> None:
 @dp.callback_query_handler(LINK_CB.filter(action=LINK_CB_ACTION_FOR_LINK_DELETING))
 async def delete_link__handle_link_data(call: types.CallbackQuery, callback_data: dict):
     """ Handle link data. Delete link """
-    link_id = callback_data['id']
+    link_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
         await db.delete_one_link(session, link_id)
 
-    text = f'✅ Link has been deleted!'
+    text = f'✅ The link has been deleted!'
     keyboard = LinksAndRubricsMainReplyKeyboard(one_time_keyboard=True)
     await call.message.answer(text, reply_markup=keyboard, disable_web_page_preview=True)
 

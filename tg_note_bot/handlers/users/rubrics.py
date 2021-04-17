@@ -40,8 +40,7 @@ from ...keyboards.reply import (
     EmptyValueReplyKeyboard,
     LinksAndRubricsMainReplyKeyboard,
     DecisionAboutRubricLinksOnDeletingReplyKeyboard,
-    PossibleRubricEmojiNameReplyKeyboard,
-    ManageSeriousDeletingReplyKeyboard
+    PossibleRubricEmojiNameReplyKeyboard
 )
 from ...loader import (
     dp,
@@ -76,7 +75,7 @@ async def see_rubrics(message: types.Message) -> None:
         text = md.text(
             '☑️ List of your rubrics:',
             *[
-                '{list_divider} {tg_repr}'.format(list_divider='▪️', tg_repr=rubric.full_tg_repr)
+                '{list_divider} {tg_repr}'.format(list_divider='▪️', tg_repr=rubric.bold_name_with_description)
                 for rubric in rubrics
             ],
             sep='\n'
@@ -227,7 +226,7 @@ async def delete_rubric__handle_rubric_data(call: types.CallbackQuery, callback_
     """ Handle rubric data. Ask to make a decision about rubric links """
     user_id = call.from_user.id
 
-    rubric_id = callback_data['id']
+    rubric_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
         does_have_rubric_any_links = await db.does_rubric_have_any_links(session, rubric_id)
@@ -316,7 +315,7 @@ async def delete_rubric__handle_rubric_links_decision_to_move(message: types.Mes
     async with async_db_sessionmaker() as session:
         rubrics = await db.fetch_all_rubrics(session, user_id)
 
-    text = f'❔ Choose on of the list below: [all links that related with deleting rubric with will be moved in ...]'
+    text = f'❔ Choose on of the list below: [all links that related with deleting rubric will be moved in ...]'
     keyboard = RubricListInlineKeyboard(
         rubrics, action=RUBRIC_CB_ACTION_FOR_LINKS_MOVING, row_width=1, except_rubrics_with_id={rubric_id, }
     )
@@ -337,7 +336,7 @@ async def delete_rubric__handle_new_rubric_for_links_moving(call: types.Callback
         rubric_id = data['id']
 
     # new -> rubric for links migrating
-    new_rubric_id = callback_data['id']
+    new_rubric_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
         await db.delete_one_rubric(session, rubric_id, migrate_links_in_rubric_with_id=new_rubric_id)
