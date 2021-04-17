@@ -7,10 +7,10 @@ name = "pypi"
 sqlalchemy = "*"
 aiogram = "*"
 python-dotenv = "*"
-aiosqlite = "*"
 pyyaml = "*"
 pydantic = "*"
 emoji = "*"
+asyncpg = "*"
 
 [dev-packages]
 

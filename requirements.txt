@@ -1,6 +1,5 @@
 aiogram==2.12.1
-aiohttp==3.7.4.post0
-aiosqlite==0.17.0
+asyncpg==0.22.0
 pipenv==2020.11.15
 python-dotenv==0.17.0
 PyYAML==5.4.1
