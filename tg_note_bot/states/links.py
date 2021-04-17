@@ -4,7 +4,10 @@ Contains states groups for rubrics interactions.
 .. class:: LinkAddingStatesGroup(StatesGroup)
 """
 
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher.filters.state import (
+    State,
+    StatesGroup
+)
 
 
 class LinkAddingStatesGroup(StatesGroup):
