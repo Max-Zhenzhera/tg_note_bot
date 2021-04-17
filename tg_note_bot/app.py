@@ -17,11 +17,13 @@ from .loader import dp
 from .handlers import dp
 from .middlewares import dp
 # | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+from .commands import COMMANDS
 from .utils.admins_notifying import notify_admins_on_startup
 
 
 async def on_startup(dp: Dispatcher):
     await notify_admins_on_startup(dp)
+    await dp.bot.set_my_commands(COMMANDS)
 
 
 def main():
