@@ -38,7 +38,7 @@ handlers:
     info_console:
         class: logging.StreamHandler
         level: INFO
-        formatter: detailed
+        formatter: standard
         stream: ext://sys.stdout
         filters: [INFOFilter]
 
@@ -54,14 +54,57 @@ handlers:
     error_console:
         class: logging.StreamHandler
         level: WARN
-        formatter: detailed
+        formatter: error
         stream: ext://sys.stderr
+
+    # INFO and higher logs
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: detailed
+        # path to filter from the core package
+        filename: ../logs/common/info.log
+        maxBytes: 1000000 # 1MB
+        backupCount: 3
+        encoding: utf8
+
+    # ERROR and higher logs
+    error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: error
+        # path to filter from the core package
+        filename: ../logs/common/errors.log
+        maxBytes: 1000000 # 1MB
+        backupCount: 5
+        encoding: utf8
+
+    # ERROR and higher logs that have been emitted !only! by `tg_note_bot_logger`
+    tg_note_bot_logger_error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: error
+        # path to filter from the core package
+        filename: ../logs/tg_note_bot/errors.log
+        maxBytes: 1000000 # 1MB
+        backupCount: 5
+        encoding: utf8
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 # root logger
 root:
     level: INFO
-    handlers: [debug_console, info_console, error_console]
+    handlers: [debug_console, info_console, error_console, info_file_handler, error_file_handler]
     propogate: yes
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# loggers
+loggers:
+    # name of the main package
+    tg_note_bot:
+        level: INFO
+        handlers: [tg_note_bot_logger_error_file_handler]
+        propogate: yes
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

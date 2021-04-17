@@ -1,10 +1,13 @@
 """
 Contains functions for admins notifying.
+
+.. async:: notify_admins_on_startup(dp: Dispatcher) -> None
 """
 
 import logging
 
 from aiogram import Dispatcher
+from aiogram.utils import markdown as md
 
 from ..settings import ADMINS
 
@@ -23,7 +26,11 @@ async def notify_admins_on_startup(dp: Dispatcher) -> None:
     :rtype: None
     """
 
-    message = '🏳️ Bot is running!'
+    message = md.text(
+        '🚀 BOT NOTIFICATION ON STARTUP 🚀',
+        md.hbold('🤖 Bot is running! 🤖'),
+        sep='\n'
+    )
 
     for admin in ADMINS:
         try:

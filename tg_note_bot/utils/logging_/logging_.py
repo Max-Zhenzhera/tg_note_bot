@@ -14,6 +14,9 @@ import yaml
 from ...settings import CORE_DIR
 
 
+__all__ = ['setup_logging']
+
+
 def _create_dirs_for_logs(config: dict) -> None:
     """ """
     for handler_name in config['handlers']:
