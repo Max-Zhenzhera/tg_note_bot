@@ -9,13 +9,13 @@ import asyncio
 
 from tg_note_bot.db import (
     models,
-    sqlite
+    postgres
 )
 
 
 async def main():
     """ Drop and create all tables """
-    engine = sqlite.create_db_engine()
+    engine = postgres.create_db_engine()
 
     async with engine.begin() as connection:
         await connection.run_sync(models.Base.metadata.drop_all)
