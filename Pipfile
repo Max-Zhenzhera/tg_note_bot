@@ -11,6 +11,7 @@ pyyaml = "*"
 pydantic = "*"
 emoji = "*"
 asyncpg = "*"
+aioredis = "*"
 
 [dev-packages]
 

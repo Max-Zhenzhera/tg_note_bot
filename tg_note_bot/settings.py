@@ -18,6 +18,9 @@ Contains settings, constants and environment data.
 .. const:: DB_PASSWORD
 .. const:: DB_NAME
 
+.. const:: REDIS_HOST
+.. const:: REDIS_PORT
+
 .. const:: ADMINS
 .. const:: THROTTLING_RATE_LIMIT_IN_SECONDS
 
@@ -55,12 +58,17 @@ DB_ENGINE = os.getenv('DB_ENGINE')
 DB_DRIVER = os.getenv('DB_DRIVER')
 
 DB_HOST = os.getenv('DB_HOST')
-DB_PORT = os.getenv('DB_PORT')
+DB_PORT = int(os.getenv('DB_PORT'))
 
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 
 DB_NAME = os.getenv('DB_NAME')
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+# REDIS SETTINGS ////////////////////////////////////////////////////////////////////////////////////////////
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = int(os.getenv('REDIS_PORT'))
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # BOT SETTINGS //////////////////////////////////////////////////////////////////////////////////////////////

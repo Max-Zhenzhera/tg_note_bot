@@ -3,7 +3,7 @@ Contains handlers for serious deleting.
 
 .. async:: manage_deleting__catch_message(message: types.Message) -> None
 .. async:: manage_deleting__comeback(message: types.Message, state: FSMContext) -> None
-.. async:: manage_deleting__ask_user_confirmation(message: types.Message, state: FSMContext, db_function: Callable,
+.. async:: manage_deleting__ask_user_confirmation(message: types.Message, state: FSMContext, db_function_key: Callable,
         message_if_confirmed: str) -> None
 
 .. async:: manage_deleting__delete_all_links(message: types.Message, state: FSMContext) -> None
@@ -39,6 +39,24 @@ from ...states import ManageSeriousDeletingStatesGroup
 logger = logging.getLogger(__name__)
 
 
+# Used Redis FSM storage - values must be JSON-serializable ------------------------------------------------------------
+KEY_DELETE_ALL_LINKS = 'DELETE_ALL_LINKS'
+KEY_DELETE_ALL_RUBRICS = 'DELETE_ALL_RUBRICS'
+KEY_DELETE_ALL_RUBRIC_LINKS = 'DELETE_ALL_RUBRIC_LINKS'
+KEY_DELETE_ALL_NON_RUBRIC_LINKS = 'DELETE_ALL_NON_RUBRIC_LINKS'
+KEY_DELETE_ALL_USER_DATA = 'DELETE_ALL_USER_DATA'
+
+# function_key: function | proxy mapper
+DB_DELETE_FUNCTIONS_MAPPER = {
+    KEY_DELETE_ALL_LINKS: db.delete_all_links_by_user,
+    KEY_DELETE_ALL_RUBRICS: db.delete_all_rubrics,
+    KEY_DELETE_ALL_RUBRIC_LINKS: db.delete_all_rubric_links_by_user,
+    KEY_DELETE_ALL_NON_RUBRIC_LINKS: db.delete_all_non_rubric_links_by_user,
+    KEY_DELETE_ALL_USER_DATA: db.delete_all_user_data
+}
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 @dp.message_handler(text=LinksAndRubricsMainReplyKeyboard.text_for_button_to_manage_serious_deleting)
 async def manage_deleting__catch_message(message: types.Message) -> None:
     """ Trigger on delete managing message. Ask for choice """
@@ -63,7 +81,7 @@ async def manage_deleting__comeback(message: types.Message, state: FSMContext) -
 
 
 async def manage_deleting__ask_user_confirmation(message: types.Message, state: FSMContext,
-                                                 db_function: Callable, message_if_confirmed: str
+                                                 db_function_key: str, message_if_confirmed: str
                                                  ) -> None:
     """
     Ask user for confirmation and set in state delete data.
@@ -72,8 +90,8 @@ async def manage_deleting__ask_user_confirmation(message: types.Message, state: 
     :type message: types.Message
     :param state: to set data
     :type state: FSMContext
-    :param db_function: state data
-    :type db_function: Callable
+    :param db_function_key: state data
+    :type db_function_key: str
     :param message_if_confirmed: state data
     :type message_if_confirmed: str
 
@@ -82,7 +100,7 @@ async def manage_deleting__ask_user_confirmation(message: types.Message, state: 
     """
 
     async with state.proxy() as data:
-        data['db_function'] = db_function
+        data['db_function_key'] = db_function_key
         data['message_if_confirmed'] = message_if_confirmed
 
     text = '❔ Are you sure ❔'
@@ -98,10 +116,10 @@ async def manage_deleting__ask_user_confirmation(message: types.Message, state: 
 )
 async def manage_deleting__delete_all_links(message: types.Message, state: FSMContext) -> None:
     """ Trigger on delete all links message. Ask to confirm """
-    db_function = db.delete_all_links_by_user
+    db_function_key = KEY_DELETE_ALL_LINKS
     message_if_confirmed = '✅ All links have been deleted!'
 
-    await manage_deleting__ask_user_confirmation(message, state, db_function, message_if_confirmed)
+    await manage_deleting__ask_user_confirmation(message, state, db_function_key, message_if_confirmed)
 
 
 @dp.message_handler(
@@ -110,10 +128,10 @@ async def manage_deleting__delete_all_links(message: types.Message, state: FSMCo
 )
 async def manage_deleting__delete_all_rubrics(message: types.Message, state: FSMContext) -> None:
     """ Trigger on delete all rubrics message. Ask to confirm """
-    db_function = db.delete_all_rubrics
+    db_function_key = KEY_DELETE_ALL_RUBRICS
     message_if_confirmed = '✅ All rubrics have been deleted! All rubric links have migrated in non-rubric!'
 
-    await manage_deleting__ask_user_confirmation(message, state, db_function, message_if_confirmed)
+    await manage_deleting__ask_user_confirmation(message, state, db_function_key, message_if_confirmed)
 
 
 @dp.message_handler(
@@ -122,10 +140,10 @@ async def manage_deleting__delete_all_rubrics(message: types.Message, state: FSM
 )
 async def manage_deleting__delete_all_rubric_links(message: types.Message, state: FSMContext) -> None:
     """ Trigger on delete all rubric links message. Ask to confirm """
-    db_function = db.delete_all_rubric_links_by_user
+    db_function_key = KEY_DELETE_ALL_RUBRIC_LINKS
     message_if_confirmed = '✅ All rubric links have been deleted! All rubrics are empty now!'
 
-    await manage_deleting__ask_user_confirmation(message, state, db_function, message_if_confirmed)
+    await manage_deleting__ask_user_confirmation(message, state, db_function_key, message_if_confirmed)
 
 
 @dp.message_handler(
@@ -134,10 +152,10 @@ async def manage_deleting__delete_all_rubric_links(message: types.Message, state
 )
 async def manage_deleting__delete_all_non_rubric_links(message: types.Message, state: FSMContext) -> None:
     """ Trigger on delete all non rubric links message. Ask to confirm """
-    db_function = db.delete_all_non_rubric_links_by_user
+    db_function_key = KEY_DELETE_ALL_NON_RUBRIC_LINKS
     message_if_confirmed = '✅ All non rubric links (🖤) have been deleted!'
 
-    await manage_deleting__ask_user_confirmation(message, state, db_function, message_if_confirmed)
+    await manage_deleting__ask_user_confirmation(message, state, db_function_key, message_if_confirmed)
 
 
 @dp.message_handler(
@@ -146,10 +164,10 @@ async def manage_deleting__delete_all_non_rubric_links(message: types.Message, s
 )
 async def manage_deleting__delete_all_data(message: types.Message, state: FSMContext) -> None:
     """ Trigger on delete all non rubric links message. Ask to confirm """
-    db_function = db.delete_all_user_data
+    db_function_key = KEY_DELETE_ALL_USER_DATA
     message_if_confirmed = '✅ All data has been deleted! No one link and rubric have left! (🕳)'
 
-    await manage_deleting__ask_user_confirmation(message, state, db_function, message_if_confirmed)
+    await manage_deleting__ask_user_confirmation(message, state, db_function_key, message_if_confirmed)
 
 
 @dp.message_handler(
@@ -161,7 +179,7 @@ async def manage_deleting__execute_after_confirmation(message: types.Message, st
     user_id = message.from_user.id
 
     async with state.proxy() as data:
-        db_function = data['db_function']
+        db_function = DB_DELETE_FUNCTIONS_MAPPER[data['db_function_key']]
         text = data['message_if_confirmed']
 
     async with async_db_sessionmaker() as session:
@@ -199,4 +217,3 @@ async def manage_deleting__redirect_after_main_menu_choice(message: types.Messag
     await message.answer(text, reply_markup=keyboard)
 
     await state.finish()
-

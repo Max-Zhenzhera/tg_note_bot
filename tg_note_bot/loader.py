@@ -13,11 +13,15 @@ from aiogram import (
     Dispatcher,
     types
 )
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
 from . import settings
 from .db import postgres
-from .settings import LOGGING_CONFIG_PATH
+from .settings import (
+    LOGGING_CONFIG_PATH,
+    REDIS_HOST,
+    REDIS_PORT
+)
 from .utils.logging_ import setup_logging
 
 
@@ -33,7 +37,7 @@ setup_logging(LOGGING_CONFIG_PATH)
 # # bot
 bot = Bot(token=settings.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 
-storage = MemoryStorage()
+storage = RedisStorage2(REDIS_HOST, REDIS_PORT)
 dp = Dispatcher(bot=bot, storage=storage)
 # # db
 async_db_sessionmaker = postgres.create_db_session()
