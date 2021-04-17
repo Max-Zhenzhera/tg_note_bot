@@ -31,7 +31,8 @@ class RubricListInlineKeyboard(types.InlineKeyboardMarkup):
     def __init__(self, rubrics: list[Rubric],
                  *args,
                  action: str, empty_value_on_the_start: bool = False, except_rubrics_with_id: Optional[set[int]] = None,
-                 **kwargs):
+                 **kwargs
+                 ):
         """
         Build the inline keyboard with considering the additional arguments.
         Keyboard displays list of the rubrics.
@@ -58,6 +59,8 @@ class RubricListInlineKeyboard(types.InlineKeyboardMarkup):
 
         if except_rubrics_with_id is None:
             except_rubrics_with_id = set()
+        else:
+            except_rubrics_with_id = {int(rubric_id) for rubric_id in except_rubrics_with_id}
 
         if empty_value_on_the_start:
             buttons.append(types.InlineKeyboardButton(
@@ -69,7 +72,7 @@ class RubricListInlineKeyboard(types.InlineKeyboardMarkup):
             rubric_id = rubric.id
 
             if rubric_id not in except_rubrics_with_id:
-                text = rubric.name
+                text = rubric.name_with_description
 
                 button = types.InlineKeyboardButton(
                     text,

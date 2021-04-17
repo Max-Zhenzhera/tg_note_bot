@@ -40,7 +40,10 @@ class LinkListInlineKeyboard(types.InlineKeyboardMarkup):
         """
 
         buttons = [
-            types.InlineKeyboardButton(link.full_tg_repr, callback_data=LINK_CB.new(action=action, id=link.id))
+            types.InlineKeyboardButton(
+                link.short_url_with_description_and_rubric,
+                callback_data=LINK_CB.new(action=action, id=link.id)
+            )
             for link in links
         ]
 

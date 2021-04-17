@@ -1,13 +1,37 @@
 """
 Contains common reply keyboards.
 
+.. class:: YesOrNotReplyKeyboard(types.ReplyKeyboardMarkup)
 .. class:: EmptyValueReplyKeyboard(types.ReplyKeyboardMarkup)
 .. class:: LinksAndRubricsMainReplyKeyboard(types.ReplyKeyboardMarkup)
+.. class:: ManageSeriousDeletingReplyKeyboard(types.ReplyKeyboardMarkup)
 """
 
 from aiogram import types
 
 from ...settings import EMPTY_VALUE
+
+
+class YesOrNotReplyKeyboard(types.ReplyKeyboardMarkup):
+    """
+    Implements keyboard with Yes, Not, Main menu buttons.
+    """
+
+    text_for_button_with_yes = '👍 Yes'
+    text_for_button_with_not = '👎 Not'
+    text_for_button_to_comeback_main_menu = '🚗 Comeback main menu'
+
+    button_with_yes = types.KeyboardButton(text_for_button_with_yes)
+    button_with_not = types.KeyboardButton(text_for_button_with_not)
+    button_to_comeback_main_menu = types.KeyboardButton(text_for_button_to_comeback_main_menu)
+
+    keyboard_structure = [
+        [button_with_yes, button_with_not],
+        [button_to_comeback_main_menu]
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.keyboard_structure, *args, **kwargs)
 
 
 class EmptyValueReplyKeyboard(types.ReplyKeyboardMarkup):
@@ -78,14 +102,17 @@ class ManageSeriousDeletingReplyKeyboard(types.ReplyKeyboardMarkup):
     text_for_button_to_delete_all_rubric_links = '🔥 all rubric links'
     text_for_button_to_delete_all_non_rubric_links = '🔥 all non-rubric links'
     text_for_button_to_delete_all = '🔥 all 🔥'
+    text_for_button_to_comeback = '❌ Comeback ❌'
 
     button_to_delete_all_links = types.KeyboardButton(text_for_button_to_delete_all_links)
     button_to_delete_all_rubrics = types.KeyboardButton(text_for_button_to_delete_all_rubrics)
     button_to_delete_all_rubric_links = types.KeyboardButton(text_for_button_to_delete_all_rubric_links)
     button_to_delete_all_non_rubric_links = types.KeyboardButton(text_for_button_to_delete_all_non_rubric_links)
     button_to_delete_all = types.KeyboardButton(text_for_button_to_delete_all)
+    button_to_comeback = types.KeyboardButton(text_for_button_to_comeback)
 
     keyboard_structure = [
+        [button_to_comeback],
         [button_to_delete_all_links, button_to_delete_all_rubrics],
         [button_to_delete_all_rubric_links, button_to_delete_all_non_rubric_links],
         [button_to_delete_all]
