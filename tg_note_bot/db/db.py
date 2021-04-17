@@ -5,14 +5,18 @@ Contains functions that interact with db.
 .. async:: add_user(session: AsyncSession, user: User) -> None
 .. async:: add_rubric(session: AsyncSession, rubric: Rubric) -> None
 .. async:: add_link(session: AsyncSession, link: Link) -> None
+.. async:: add_bug(session: AsyncSession, bug: Bug) -> None
 
 .. async:: fetch_one_rubric(session: AsyncSession, rubric_id: int, *, with_links: bool = False) -> Rubric
 .. async:: fetch_all_rubrics(session: AsyncSession, user_id: int, *, with_links: bool = False) -> list[Rubric]
 .. async:: fetch_one_link(session: AsyncSession, link_id: int, *, with_rubric: bool = True) -> Link
 .. async:: fetch_all_links(session: AsyncSession, user_id: int, *, with_rubric: bool = False,
         group_by_rubric: bool = False) -> Union[list[Link], dict[Optional[Rubric], Link]]
+.. async:: fetch_all_bugs(session: AsyncSession) -> list[Bug]
+.. async:: fetch_all_unwatched_bugs(session: AsyncSession) -> list[Bug]
 
 .. async:: migrate_links_in_another_rubric(session: AsyncSession, old_rubric_id: int, new_rubric_id: int) -> None
+.. async:: mark_all_bugs_as_watched(session: AsyncSession) -> None
 
 .. async:: delete_entity_by_instance(session: AsyncSession, entity: Base) -> None
 .. async:: delete_user(session: AsyncSession, user_id: int) -> None
@@ -24,6 +28,7 @@ Contains functions that interact with db.
 .. async:: delete_all_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
 .. async:: delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: int) -> None
 .. async:: delete_all_links_by_rubric(session: AsyncSession, rubric_id: int) -> None
+.. async:: delete_all_user_data(session: AsyncSession, user_id: int) -> None
 
 .. async:: count_user_rubrics(session: AsyncSession, user_id: int) -> int
 .. async:: does_rubric_have_any_links(session: AsyncSession, rubric_id: int) -> bool
@@ -53,7 +58,8 @@ from .models import (
     Base,
     User,
     Rubric,
-    Link
+    Link,
+    Bug
 )
 from .errors import UserAlreadyInDbError
 
@@ -139,6 +145,24 @@ async def add_link(session: AsyncSession, link: Link) -> None:
     """
 
     await add_entity(session, link)
+
+
+# # Bug
+async def add_bug(session: AsyncSession, bug: Bug) -> None:
+    """
+    Add bug.
+    The same as `add_entity` function, but more clear.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param bug: Bug instance
+    :type bug: Bug
+
+    :return: None
+    :rtype: None
+    """
+
+    await add_entity(session, bug)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -264,6 +288,43 @@ async def fetch_all_links(session: AsyncSession, user_id: int,
         }
 
     return links
+
+
+# # Bug
+async def fetch_all_bugs(session: AsyncSession) -> list[Bug]:
+    """
+    Fetch all bugs.
+
+    :param session: db connection
+    :type session: AsyncSession
+
+    :return: all bugs
+    :rtype: list[Bug]
+    """
+
+    stmt = select(Bug)
+    result = await session.execute(stmt)
+    bugs = list(result.scalars())
+
+    return bugs
+
+
+async def fetch_all_unwatched_bugs(session: AsyncSession) -> list[Bug]:
+    """
+    Fetch all unwatched bugs.
+
+    :param session:
+    :type session:
+
+    :return: all unwatched bugs
+    :rtype: list[Bug]
+    """
+
+    stmt = select(Bug).where(Bug.is_shown == False)
+    result = await session.execute(stmt)
+    bugs = list(result.scalars())
+
+    return bugs
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -290,6 +351,23 @@ async def migrate_links_in_another_rubric(session: AsyncSession, old_rubric_id: 
             where(Link.rubric_id == old_rubric_id).
             values(rubric_id=new_rubric_id)
         )
+        await session.execute(stmt)
+
+
+# # Bug
+async def mark_all_bugs_as_watched(session: AsyncSession) -> None:
+    """
+    Mark all bugs as watched.
+
+    :param session: db connection
+    :type session: AsyncSession
+
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.update(Bug).values(is_shown=True)
         await session.execute(stmt)
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -396,7 +474,7 @@ async def delete_all_rubrics(session: AsyncSession, user_id: int, *, delete_link
         await delete_all_rubric_links_by_user(session, user_id)
 
     async with session.begin():
-        stmt = sa.delete(Rubric).where(user_id == user_id)
+        stmt = sa.delete(Rubric).where(Rubric.user_id == user_id)
         await session.execute(stmt)
 
 
@@ -437,6 +515,24 @@ async def delete_all_links_by_user(session: AsyncSession, user_id: int) -> None:
         await session.execute(stmt)
 
 
+async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: int) -> None:
+    """
+    Delete all links that related with rubric.
+
+    :param session: db connection
+    :type session: AsyncSession
+    :param rubric_id: rubric id
+
+    :type rubric_id: int
+    :return: None
+    :rtype: None
+    """
+
+    async with session.begin():
+        stmt = sa.delete(Link).where(Link.rubric_id == rubric_id)
+        await session.execute(stmt)
+
+
 async def delete_all_rubric_links_by_user(session: AsyncSession, user_id: int) -> None:
     """
     Delete all links that have rubric and related with user.
@@ -470,24 +566,6 @@ async def delete_all_non_rubric_links_by_user(session: AsyncSession, user_id: in
 
     async with session.begin():
         stmt = sa.delete(Link).where(sa.and_(Link.user_id == user_id, Link.rubric_id == None))
-        await session.execute(stmt)
-
-
-async def delete_all_links_by_rubric(session: AsyncSession, rubric_id: int) -> None:
-    """
-    Delete all links that related with rubric.
-
-    :param session: db connection
-    :type session: AsyncSession
-    :param rubric_id: rubric id
-
-    :type rubric_id: int
-    :return: None
-    :rtype: None
-    """
-
-    async with session.begin():
-        stmt = sa.delete(Link).where(Link.rubric_id == rubric_id)
         await session.execute(stmt)
 
 

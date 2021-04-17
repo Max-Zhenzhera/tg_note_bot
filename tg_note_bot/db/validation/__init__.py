@@ -14,6 +14,7 @@ from typing import (
 
 import pydantic
 
+from .bugs import BugValidator
 from .links import LinkValidator
 from .rubrics import RubricValidator
 

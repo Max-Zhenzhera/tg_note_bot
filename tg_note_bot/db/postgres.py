@@ -14,14 +14,26 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import sessionmaker
 
-from .. import settings
+from ..settings import (
+    DB_ENGINE,
+    DB_DRIVER,
+    DB_USER,
+    DB_PASSWORD,
+    DB_HOST,
+    DB_PORT,
+    DB_NAME,
+    DEBUG_DB
+)
+
+
+DB_CONNECTION_STRING = f'{DB_ENGINE}+{DB_DRIVER}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 
 def create_db_engine() -> AsyncEngine:
-    """ Create async sqlite db engine """
+    """ Create async postgres db engine """
     engine = create_async_engine(
-        f"{settings.DB_ENGINE}+{settings.DB_DRIVER}:///{settings.DB_PATH}",
-        echo=settings.DEBUG_DB
+        DB_CONNECTION_STRING,
+        echo=DEBUG_DB
     )
 
     return engine

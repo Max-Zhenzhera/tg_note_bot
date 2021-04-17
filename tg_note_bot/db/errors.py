@@ -1,5 +1,8 @@
 """
 Contains db errors for project.
+
+.. exception:: TgNoteBotDbError(TgNoteBotError)
+.. exception:: UserAlreadyInDbError(TgNoteBotDbError)
 """
 
 from ..errors import TgNoteBotError

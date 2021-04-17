@@ -4,14 +4,18 @@ Implements db models.
 .. class:: Users(Base)
 .. class:: Rubrics(Base)
 .. class:: Links(Base)
+
+.. class:: Bug(Base)
 """
 
 from aiogram.utils import markdown as md
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
+    Sequence,
     func,
     Integer,
     String,
@@ -21,6 +25,7 @@ from sqlalchemy.orm import (
     relationship
 )
 from sqlalchemy.exc import MissingGreenlet
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 
 Base = declarative_base()
@@ -32,7 +37,7 @@ class User(Base):
     __tablename__ = 'users'
 
     # basically, it supposed to be a telegram id
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, Sequence('users_id_seq'), primary_key=True)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
     rubrics = relationship('Rubric', back_populates='user', order_by='Rubric.name')
@@ -47,8 +52,8 @@ class Rubric(Base):
 
     __tablename__ = 'rubrics'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
+    id = Column(Integer, Sequence('rubrics_id_seq'), primary_key=True)
+    name = Column(String, nullable=False)
     description = Column(String)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
@@ -64,14 +69,19 @@ class Rubric(Base):
         )
 
     @property
-    def short_tg_repr(self) -> str:
+    def bold_name(self) -> str:
         """ Return bold name of the rubric """
         return md.hbold(self.name)
 
     @property
-    def full_tg_repr(self) -> str:
+    def name_with_description(self) -> str:
         """ Return short repr with description in square brackets if exists """
-        return md.text(self.short_tg_repr, f'[{self.description}]') if self.description else self.short_tg_repr
+        return md.text(self.name, f'[{self.description}]') if self.description else self.name
+
+    @property
+    def bold_name_with_description(self) -> str:
+        """ Return short repr with description in square brackets if exists """
+        return md.text(self.bold_name, f'[{self.description}]') if self.description else self.bold_name
 
     def repr_with_links(self, link_shift: str, *, rubric_shift: str = '', links: list['Link'] = None) -> str:
         """
@@ -97,9 +107,9 @@ class Rubric(Base):
         link_shift = '\t' * 8 + link_shift
 
         text = md.text(
-            f'{rubric_shift} {self.short_tg_repr}',
+            f'{rubric_shift} {self.bold_name_with_description}',
             *[
-                f'{link_shift} {link.short_tg_repr}'
+                f'{link_shift} {link.short_url_with_description}'
                 for link in rubric_links
             ],
             sep='\n'
@@ -113,7 +123,7 @@ class Link(Base):
 
     __tablename__ = 'links'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, Sequence('links_id_seq'), primary_key=True)
     url = Column(String, nullable=False)
     description = Column(String)
     created_at = Column(DateTime, server_default=func.current_timestamp())
@@ -132,10 +142,11 @@ class Link(Base):
 
     @property
     def short_url(self) -> str:
+        """ Delete http(s)://www. from url """
         return self.url.removeprefix('http://').removeprefix('https://').removeprefix('www.')
 
     @property
-    def short_tg_repr(self) -> str:
+    def short_url_with_description(self) -> str:
         """ Hide link in the description if exists else hide link displaying in url """
         if self.description:
             text = md.text(self.description, f'[{self.short_url}]', sep='\n')
@@ -145,17 +156,47 @@ class Link(Base):
         return text
 
     @property
-    def full_tg_repr(self) -> str:
+    def short_url_with_description_and_rubric(self) -> str:
         """
-        Add before `short_tg_repr` property rubric name in square brackets if exists.
+        Add before `bold_name` property rubric name in square brackets if exists.
         Requires rubric loading.
 
         :raises MissingGreenlet: raised if link was not loaded with rubric
         """
 
         if self.rubric:
-            text = md.text(self.rubric.name, '|', self.short_tg_repr)
+            text = md.text(self.rubric.name, '|', self.short_url_with_description)
         else:
-            text = md.text('🖤', '|', self.short_tg_repr)
+            text = md.text('🖤', '|', self.short_url_with_description)
 
         return text
+
+
+class Bug(Base):
+    """ Implements db table for bugs keeping """
+
+    __tablename__ = 'bugs'
+
+    id = Column(Integer, Sequence('bugs_id_seq'), primary_key=True)
+    message = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    is_shown = Column(Boolean, server_default='false')
+
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+
+    def __repr__(self):
+        return (
+            f'Bug(id={self.id!r}, message={self.message!r}, created_at={self.created_at!r}, '
+            f'is_shown={self.is_shown!r}, user_id={self.user_id!r})'
+        )
+
+    @property
+    def tg_repr(self) -> str:
+        """ Return detailed bug tg representation """
+        return md.text(
+            f'id: {self.id}'
+            f'message: {self.message}',
+            f'created at: {self.created_at.isoformat(" ")}',
+            f'is shown before: {self.is_shown}',
+            sep='\n'
+        )
