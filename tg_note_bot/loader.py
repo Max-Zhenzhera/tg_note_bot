@@ -16,7 +16,7 @@ from aiogram import (
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from . import settings
-from .db import sqlite
+from .db import postgres
 from .settings import LOGGING_CONFIG_PATH
 from .utils.logging_ import setup_logging
 
@@ -32,9 +32,9 @@ setup_logging(LOGGING_CONFIG_PATH)
 # objects for importing - - - - - - - - - - - - - - - - - - - - - - -
 # # bot
 bot = Bot(token=settings.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
+
 storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
-
 # # db
-async_db_sessionmaker = sqlite.create_db_session()
+async_db_sessionmaker = postgres.create_db_session()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
