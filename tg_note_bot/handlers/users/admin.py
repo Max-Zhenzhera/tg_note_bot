@@ -70,7 +70,7 @@ async def show_all_bugs(message: types.Message) -> None:
             bug.tg_repr
             for bug in bugs
         ],
-        sep='\n' + '=' * 10 + '\n'
+        sep='\n' + '➖' * 10 + '\n'
     )
     await message.answer(text)
 

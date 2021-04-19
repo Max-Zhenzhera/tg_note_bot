@@ -1,9 +1,8 @@
 """
-Contains all objects that might be imported from child packages (handlers, ...).
-- This is a quick way to fresh up dp -> in the second step import from other modules upgraded dp.
+Contains all objects that might be imported in child packages (handlers, ...).
 
 .. data:: bot
-.. data:: bot
+.. data:: dp
 .. data:: storage
 .. data:: async_db_sessionmaker
 """
@@ -34,9 +33,8 @@ setup_logging(LOGGING_CONFIG_PATH)
 
 
 # objects for importing - - - - - - - - - - - - - - - - - - - - - - -
-# # bot
+# # bot-dp
 bot = Bot(token=settings.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
-
 storage = RedisStorage2(REDIS_HOST, REDIS_PORT)
 dp = Dispatcher(bot=bot, storage=storage)
 # # db

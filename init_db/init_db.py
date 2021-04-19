@@ -1,7 +1,7 @@
 """
 Initializes database.
 
-.. func:: main()
+.. async:: main()
     Manage the tables.
 """
 

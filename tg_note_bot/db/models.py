@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     Sequence,
     func,
+    BigInteger,
     Integer,
     String,
 )
@@ -37,7 +38,7 @@ class User(Base):
     __tablename__ = 'users'
 
     # basically, it supposed to be a telegram id
-    id = Column(Integer, Sequence('users_id_seq'), primary_key=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=False)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
     rubrics = relationship('Rubric', back_populates='user', order_by='Rubric.name')
@@ -52,12 +53,12 @@ class Rubric(Base):
 
     __tablename__ = 'rubrics'
 
-    id = Column(Integer, Sequence('rubrics_id_seq'), primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(String)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
 
     user = relationship('User', back_populates='rubrics')
     links = relationship('Link', back_populates='rubric', order_by='Link.url')
@@ -123,13 +124,13 @@ class Link(Base):
 
     __tablename__ = 'links'
 
-    id = Column(Integer, Sequence('links_id_seq'), primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     url = Column(String, nullable=False)
     description = Column(String)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    rubric_id = Column(Integer, ForeignKey('rubrics.id', ondelete='SET NULL'))
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
+    rubric_id = Column(BigInteger, ForeignKey('rubrics.id', ondelete='SET NULL'))
 
     user = relationship('User', back_populates='links')
     rubric = relationship('Rubric', back_populates='links')
@@ -177,12 +178,12 @@ class Bug(Base):
 
     __tablename__ = 'bugs'
 
-    id = Column(Integer, Sequence('bugs_id_seq'), primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     message = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.current_timestamp())
     is_shown = Column(Boolean, server_default='false')
 
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
 
     def __repr__(self):
         return (
