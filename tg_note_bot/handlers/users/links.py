@@ -115,6 +115,8 @@ async def dump_link__catch_message(message: types.Message) -> None:
 @dp.callback_query_handler(LINK_CB.filter(action=LINK_CB_ACTION_FOR_LINK_DUMPING))
 async def dump_link__handle_link_data(call: types.CallbackQuery, callback_data: dict) -> None:
     """ Handle link data. Dump link """
+    await call.message.delete_reply_markup()
+
     link_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
@@ -158,6 +160,8 @@ async def see_links_by_rubric__catch_message(message: types.Message) -> None:
 @dp.callback_query_handler(RUBRIC_CB.filter(action=RUBRIC_CB_ACTION_FOR_LINK_BY_RUBRIC_SELECTING))
 async def see_links_by_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict) -> None:
     """ Answer with list of the links sorted by rubric """
+    await call.message.delete_reply_markup()
+
     rubric_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
@@ -309,6 +313,8 @@ async def add_link__handle_empty_link_rubric(message: types.Message, state: FSMC
 )
 async def add_link__handle_link_rubric(call: types.CallbackQuery, callback_data: dict, state: FSMContext) -> None:
     """ Handle link rubric. Last state -> adding link to db. """
+    await call.message.delete_reply_markup()
+
     user_id = call.from_user.id
 
     async with state.proxy() as data:
@@ -343,6 +349,8 @@ async def delete_link__catch_message(message: types.Message) -> None:
 @dp.callback_query_handler(LINK_CB.filter(action=LINK_CB_ACTION_FOR_LINK_DELETING))
 async def delete_link__handle_link_data(call: types.CallbackQuery, callback_data: dict):
     """ Handle link data. Delete link """
+    await call.message.delete_reply_markup()
+
     link_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:

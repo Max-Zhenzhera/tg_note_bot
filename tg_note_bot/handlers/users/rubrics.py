@@ -224,8 +224,9 @@ async def delete_rubric__catch_message(message: types.Message) -> None:
 )
 async def delete_rubric__handle_rubric_data(call: types.CallbackQuery, callback_data: dict, state: FSMContext) -> None:
     """ Handle rubric data. Ask to make a decision about rubric links """
-    user_id = call.from_user.id
+    await call.message.delete_reply_markup()
 
+    user_id = call.from_user.id
     rubric_id = int(callback_data['id'])
 
     async with async_db_sessionmaker() as session:
@@ -332,6 +333,8 @@ async def delete_rubric__handle_new_rubric_for_links_moving(call: types.Callback
                                                             state: FSMContext
                                                             ) -> None:
     """ Handle new rubric data. Delete rubric and move related links in another rubric """
+    await call.message.delete_reply_markup()
+
     async with state.proxy() as data:
         rubric_id = data['id']
 
