@@ -24,11 +24,11 @@ BaseConfig.anystr_strip_whitespace = True
 
 
 class LinkUrl(BaseModel):
-    link: str = Field(min_length=3, max_length=200)
+    link: str = Field(min_length=3, max_length=500)
 
 
 class LinkDescription(BaseModel):
-    link_description: Optional[str] = Field(max_length=20)
+    link_description: Optional[str] = Field(max_length=200)
 
 
 class LinkValidator:

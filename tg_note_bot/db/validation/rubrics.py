@@ -28,7 +28,7 @@ class RubricName(BaseModel):
 
 
 class RubricDescription(BaseModel):
-    rubric_description: Optional[str]
+    rubric_description: Optional[str] = Field(max_length=200)
 
 
 class RubricValidator:
