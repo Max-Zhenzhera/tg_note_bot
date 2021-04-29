@@ -1,0 +1,38 @@
+version: "3.9"
+
+
+services:
+
+  postgres:
+    image: postgres
+    volumes:
+      # initialize db (tables creating)
+      - ./database_initialization/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # volume for persist data saving
+      - db_volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_DB=$DB_NAME
+    command: -p $DB_PORT
+
+  redis:
+    image: redis
+    command: --port $REDIS_PORT
+
+  tg_bot:
+    # image: maxzhenzhera/tg_note_bot
+    build: .
+    # to embed prepared .env
+    env_file:
+      - .env
+    # to override some connections vars (db and redis hosts - powered by docker)
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  db_volume:
