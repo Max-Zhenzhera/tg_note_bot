@@ -3,8 +3,8 @@ Contains handlers for serious deleting.
 
 .. async:: manage_deleting__catch_message(message: types.Message) -> None
 .. async:: manage_deleting__comeback(message: types.Message, state: FSMContext) -> None
-.. async:: manage_deleting__ask_user_confirmation(message: types.Message, state: FSMContext, db_function_key: Callable,
-        message_if_confirmed: str) -> None
+.. async:: manage_deleting__ask_user_confirmation(message: types.Message, state: FSMContext,
+        db_function_key: str, message_if_confirmed: str) -> None
 
 .. async:: manage_deleting__delete_all_links(message: types.Message, state: FSMContext) -> None
 .. async:: manage_deleting__delete_all_rubrics(message: types.Message, state: FSMContext) -> None
@@ -18,7 +18,6 @@ Contains handlers for serious deleting.
 """
 
 import logging
-from typing import Callable
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
