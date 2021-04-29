@@ -29,6 +29,9 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 
+__version__ = 1.0
+
+
 Base = declarative_base()
 
 
