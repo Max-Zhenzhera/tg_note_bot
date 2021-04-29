@@ -62,8 +62,7 @@ handlers:
         class: logging.handlers.RotatingFileHandler
         level: INFO
         formatter: detailed
-        # path to filter from the core package
-        filename: ../logs/common/info.log
+        filename: /~tmp/logs/common/info.log
         maxBytes: 1000000 # 1MB
         backupCount: 3
         encoding: utf8
@@ -73,8 +72,7 @@ handlers:
         class: logging.handlers.RotatingFileHandler
         level: ERROR
         formatter: error
-        # path to filter from the core package
-        filename: ../logs/common/errors.log
+        filename: /~tmp/logs/common/errors.log
         maxBytes: 1000000 # 1MB
         backupCount: 5
         encoding: utf8
@@ -84,8 +82,7 @@ handlers:
         class: logging.handlers.RotatingFileHandler
         level: ERROR
         formatter: error
-        # path to filter from the core package
-        filename: ../logs/tg_note_bot/errors.log
+        filename: /~tmp/logs/tg_note_bot/errors.log
         maxBytes: 1000000 # 1MB
         backupCount: 5
         encoding: utf8
