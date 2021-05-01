@@ -17,9 +17,13 @@ Contains settings, constants and environment data.
 .. const:: DB_USER
 .. const:: DB_PASSWORD
 .. const:: DB_NAME
+.. const:: DATABASE_URL
+.. const:: DB_CONNECTION_STRING
+
 
 .. const:: REDIS_HOST
 .. const:: REDIS_PORT
+.. const:: REDIS_URL
 
 .. const:: ADMINS
 .. const:: THROTTLING_RATE_LIMIT_IN_SECONDS
@@ -44,7 +48,7 @@ LOG_DIR = BASE_DIR / 'logs'
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # LOGGING - DEBUGGING ///////////////////////////////////////////////////////////////////////////////////////
-LOGGING_CONFIG_PATH = CORE_DIR / 'utils' / 'logging_' / 'logging_config_with_files.yaml'
+LOGGING_CONFIG_PATH = CORE_DIR / 'utils' / 'logging_' / 'logging_config.yaml'
 
 DEBUG_DB = True
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -56,19 +60,31 @@ BOT_TOKEN = os.getenv('TG_BOT_TOKEN')
 # DB SETTINGS ///////////////////////////////////////////////////////////////////////////////////////////////
 DB_ENGINE = os.getenv('DB_ENGINE')
 DB_DRIVER = os.getenv('DB_DRIVER')
-
 DB_HOST = os.getenv('DB_HOST')
 DB_PORT = int(os.getenv('DB_PORT'))
-
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
-
 DB_NAME = os.getenv('DB_NAME')
+
+# heroku env
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    DB_ENGINE, CONNECTION_DATA = DATABASE_URL.split('://')
+    DB_CONNECTION_STRING = f'{DB_ENGINE}+{DB_DRIVER}://{CONNECTION_DATA}'
+else:
+    DB_CONNECTION_STRING = f'{DB_ENGINE}+{DB_DRIVER}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # REDIS SETTINGS ////////////////////////////////////////////////////////////////////////////////////////////
 REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_PORT = int(os.getenv('REDIS_PORT'))
+
+# heroku env
+REDIS_URL = os.getenv('REDIS_URL')
+
+if REDIS_URL:
+    REDIS_HOST, REDIS_PORT = REDIS_URL.rsplit(':', maxsplit=1)
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # BOT SETTINGS //////////////////////////////////////////////////////////////////////////////////////////////

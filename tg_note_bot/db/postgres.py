@@ -15,18 +15,9 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import sessionmaker
 
 from ..settings import (
-    DB_ENGINE,
-    DB_DRIVER,
-    DB_USER,
-    DB_PASSWORD,
-    DB_HOST,
-    DB_PORT,
-    DB_NAME,
+    DB_CONNECTION_STRING,
     DEBUG_DB
 )
-
-
-DB_CONNECTION_STRING = f'{DB_ENGINE}+{DB_DRIVER}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 
 def create_db_engine() -> AsyncEngine:
