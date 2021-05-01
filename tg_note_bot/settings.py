@@ -88,7 +88,7 @@ if REDIS_URL:
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # BOT SETTINGS //////////////////////////////////////////////////////////////////////////////////////////////
-ADMINS: list[int] = [int(admin_id) for admin_id in os.getenv('ADMINS').split(',')]
+ADMINS: list[int] = [int(admin_id) for admin_id in os.getenv('ADMINS').split(',') if admin_id]
 THROTTLING_RATE_LIMIT_IN_SECONDS: float = .2
 THROTTLING_RATE_LIMIT_IN_SECONDS_FOR_BUG_COMMAND: float = 60 * 5
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
