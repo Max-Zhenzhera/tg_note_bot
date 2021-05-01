@@ -1,0 +1,1 @@
+worker: python tg_note_bot/__main__.py
