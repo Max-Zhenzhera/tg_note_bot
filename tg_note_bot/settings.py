@@ -33,6 +33,7 @@ Contains settings, constants and environment data.
 
 import os
 import pathlib
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -80,12 +81,20 @@ else:
 # REDIS SETTINGS ////////////////////////////////////////////////////////////////////////////////////////////
 REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_PORT = int(os.getenv('REDIS_PORT')) if os.getenv('REDIS_PORT') else None
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
 # heroku env
 REDIS_URL = os.getenv('REDIS_URL')
 
 if REDIS_URL:
-    REDIS_HOST, REDIS_PORT = REDIS_URL.rsplit(':', maxsplit=1)
+    url = urlparse(REDIS_URL)
+    REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = url.hostname, url.port, url.password
+
+REDIS_CONFIG = {
+    'host': REDIS_HOST,
+    'port': REDIS_PORT,
+    'password': REDIS_PASSWORD,
+}
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 # BOT SETTINGS //////////////////////////////////////////////////////////////////////////////////////////////
