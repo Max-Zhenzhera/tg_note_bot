@@ -69,7 +69,6 @@ async def command_start(message: types.Message):
             f'🤘 Hello, {md.hbold(message.from_user.username)}! ',
             f'I`m your small {md.hitalic("links saver helper")} 🔗 '
             'Explore more with the | /help | command!',
-            md.hunderline('NOTE (BOT`S NOW IN DEVELOPMENT - 🛠 - HE DOESN`T WORK NOW!)'),
             sep='\n'
         )
 
