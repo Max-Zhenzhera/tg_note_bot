@@ -23,6 +23,7 @@ Contains settings, constants and environment data.
 
 .. const:: REDIS_HOST
 .. const:: REDIS_PORT
+.. const:: REDIS_PASSWORD
 .. const:: REDIS_URL
 
 .. const:: ADMINS
@@ -71,7 +72,9 @@ DB_NAME = os.getenv('DB_NAME')
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    DB_ENGINE, CONNECTION_DATA = DATABASE_URL.split('://')
+    # DB_ENGINE, CONNECTION_DATA = DATABASE_URL.split('://')
+    url = urlparse(DATABASE_URL)
+    DB_ENGINE, CONNECTION_DATA = url.scheme, url.netloc + url.path
     DB_ENGINE = 'postgresql' if DB_ENGINE == 'postgres' else DB_ENGINE
     DB_CONNECTION_STRING = f'{DB_ENGINE}+{DB_DRIVER}://{CONNECTION_DATA}'
 else:
