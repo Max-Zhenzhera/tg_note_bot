@@ -1,14 +1,8 @@
 """
-Contains functions for setting up db.
-
-.. func:: create_db_engine() -> AsyncEngine
-    Create async db engine
-.. func:: create_db_session() -> sessionmaker
-    Create async db session maker
+Contains db connection factories.
 """
 
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
     create_async_engine
 )
@@ -20,19 +14,17 @@ from ..settings import (
 )
 
 
-def create_db_engine() -> AsyncEngine:
-    """ Create async postgres db engine """
-    engine = create_async_engine(
-        DB_CONNECTION_STRING,
-        echo=DEBUG_DB
-    )
-
-    return engine
+__all__ = ['async_db_sessionmaker']
 
 
-def create_db_session() -> sessionmaker:
-    """ Create async db session maker """
-    engine = create_db_engine()
-    async_session = sessionmaker(engine, class_=AsyncSession)
+# https://docs.sqlalchemy.org/en/14/orm/session_basics.html
 
-    return async_session
+# # #
+# When you write your application,
+# the sessionmaker factory should be scoped the same as the Engine object created by create_engine(),
+# which is typically at module-level or global scope.
+# As these objects are both factories, they can be used by any number of functions and threads simultaneously.
+# # #
+
+engine = create_async_engine(DB_CONNECTION_STRING, echo=DEBUG_DB)
+async_db_sessionmaker = sessionmaker(engine, class_=AsyncSession)

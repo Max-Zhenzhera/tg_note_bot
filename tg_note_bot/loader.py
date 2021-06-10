@@ -15,7 +15,7 @@ from aiogram import (
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
 from . import settings
-from .db import postgres
+from .db.postgres import async_db_sessionmaker
 from .settings import (
     LOGGING_CONFIG_PATH,
     REDIS_CONFIG
@@ -36,6 +36,4 @@ setup_logging(LOGGING_CONFIG_PATH)
 bot = Bot(token=settings.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 storage = RedisStorage2(**REDIS_CONFIG)
 dp = Dispatcher(bot=bot, storage=storage)
-# # db
-async_db_sessionmaker = postgres.create_db_session()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
